@@ -1,0 +1,1200 @@
+#!/usr/bin/env python3
+
+"""
+Gestione Fatture e Avvisi - Versione Professionale
+Con supporto per configurazione esterna, funzionalità avanzate
+e gestione completa dei clienti (aggiungi, modifica, elimina)
+"""
+
+import os
+import json
+import sys
+from typing import List, Dict, Optional, Tuple
+from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
+from datetime import datetime
+import argparse
+
+
+@dataclass
+class Voce:
+    """Rappresenta una voce di fattura/avviso"""
+    descrizione: str
+    importo: Decimal
+    
+    def __str__(self):
+        return f"{self.descrizione}: €{self.importo:.2f}"
+
+
+@dataclass
+class Cliente:
+    """Rappresenta un cliente"""
+    nome: str
+    cf: str
+    piva: str
+    indirizzo: str
+    citta: str
+    cap: str
+    provincia: str
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            nome=data.get('Cliente', ''),
+            cf=data.get('CF', ''),
+            piva=data.get('PIVA', ''),
+            indirizzo=data.get('Indirizzo', ''),
+            citta=data.get('Città', ''),
+            cap=data.get('CAP', ''),
+            provincia=data.get('Provincia', '')
+        )
+
+
+class GestoreClientiAvanzato:
+    """Gestisce i clienti con funzionalità complete di CRUD"""
+    
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+        self.clienti: List[Cliente] = []
+        self.modificato = False
+        
+    def carica_clienti(self) -> bool:
+        """Carica i clienti dal file JSON"""
+        try:
+            if not os.path.exists(self.file_path):
+                print(f"File {self.file_path} non trovato. Creo nuovo file clienti.")
+                self.clienti = []
+                self.salva_clienti()
+                return True
+                
+            with open(self.file_path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+                self.clienti = [Cliente.from_dict(c) for c in data.get('clienti', [])]
+                return True
+        except json.JSONDecodeError as e:
+            print(f"Errore nel parsing del file JSON: {e}")
+            return False
+        except Exception as e:
+            print(f"Errore nel caricamento clienti: {e}")
+            return False
+            
+    def salva_clienti(self) -> bool:
+        """Salva i clienti nel file JSON"""
+        try:
+            # Crea backup prima di salvare
+            if os.path.exists(self.file_path):
+                backup_path = f"{self.file_path}.backup"
+                with open(self.file_path, 'r') as src, open(backup_path, 'w') as dst:
+                    dst.write(src.read())
+                    
+            # Converti clienti in formato dizionario
+            clienti_dict = []
+            for cliente in self.clienti:
+                clienti_dict.append({
+                    "Cliente": cliente.nome,
+                    "CF": cliente.cf,
+                    "PIVA": cliente.piva,
+                    "Indirizzo": cliente.indirizzo,
+                    "Città": cliente.citta,
+                    "CAP": cliente.cap,
+                    "Provincia": cliente.provincia
+                })
+                
+            # Salva nel file
+            with open(self.file_path, 'w', encoding='utf-8') as file:
+                json.dump({"clienti": clienti_dict}, file, ensure_ascii=False, indent=2)
+                
+            self.modificato = False
+            return True
+        except Exception as e:
+            print(f"Errore nel salvataggio clienti: {e}")
+            return False
+            
+    def cerca_clienti(self, termine: str) -> List[Cliente]:
+        """Cerca clienti per nome, P.IVA o città"""
+        termine = termine.lower()
+        risultati = []
+        
+        for cliente in self.clienti:
+            if (termine in cliente.nome.lower() or 
+                termine in cliente.piva.lower() or 
+                termine in cliente.citta.lower() or
+                termine in cliente.cf.lower()):
+                risultati.append(cliente)
+                
+        return risultati
+        
+    def aggiungi_cliente(self) -> bool:
+        """Aggiunge un nuovo cliente"""
+        print("\n=== AGGIUNGI NUOVO CLIENTE ===")
+        
+        # Richiedi dati del cliente
+        nome = input("Nome/Ragione sociale *: ").strip()
+        if not nome:
+            print("Nome obbligatorio!")
+            return False
+            
+        # Controlla duplicati
+        for c in self.clienti:
+            if c.nome.lower() == nome.lower():
+                print(f"ATTENZIONE: Cliente '{nome}' già esistente!")
+                if input("Continuare comunque? (s/n): ").lower() != 's':
+                    return False
+                    
+        cf = input("Codice Fiscale: ").strip()
+        piva = input("Partita IVA: ").strip()
+        
+        # Almeno uno tra CF e P.IVA deve essere presente
+        if not cf and not piva:
+            print("Inserire almeno Codice Fiscale o Partita IVA!")
+            return False
+            
+        indirizzo = input("Indirizzo *: ").strip()
+        if not indirizzo:
+            print("Indirizzo obbligatorio!")
+            return False
+            
+        citta = input("Città *: ").strip()
+        if not citta:
+            print("Città obbligatoria!")
+            return False
+            
+        cap = input("CAP: ").strip()
+        provincia = input("Provincia (sigla): ").strip().upper()
+        
+        # Crea nuovo cliente
+        nuovo_cliente = Cliente(
+            nome=nome,
+            cf=cf,
+            piva=piva,
+            indirizzo=indirizzo,
+            citta=citta,
+            cap=cap,
+            provincia=provincia
+        )
+        
+        # Mostra riepilogo
+        print("\n--- RIEPILOGO NUOVO CLIENTE ---")
+        self._mostra_dettagli_cliente(nuovo_cliente)
+        
+        if input("\nConfermare l'inserimento? (s/n): ").lower() == 's':
+            self.clienti.append(nuovo_cliente)
+            self.modificato = True
+            print(f"\nCliente '{nome}' aggiunto con successo!")
+            return True
+        else:
+            print("Inserimento annullato.")
+            return False
+            
+    def modifica_cliente(self) -> bool:
+        """Modifica un cliente esistente"""
+        if not self.clienti:
+            print("Nessun cliente disponibile.")
+            return False
+            
+        # Cerca o seleziona cliente
+        termine = input("\nCerca cliente (invio per vedere tutti): ").strip()
+        
+        if termine:
+            clienti_trovati = self.cerca_clienti(termine)
+            if not clienti_trovati:
+                print("Nessun cliente trovato.")
+                return False
+        else:
+            clienti_trovati = self.clienti
+            
+        # Mostra lista clienti
+        print("\nClienti trovati:")
+        for i, cliente in enumerate(clienti_trovati):
+            print(f"{i + 1}. {cliente.nome} - P.IVA: {cliente.piva}")
+            
+        # Seleziona cliente
+        try:
+            scelta = int(input("\nNumero cliente da modificare (0 per annullare): "))
+            if scelta == 0:
+                return False
+                
+            if scelta < 1 or scelta > len(clienti_trovati):
+                print("Scelta non valida.")
+                return False
+                
+            cliente_selezionato = clienti_trovati[scelta - 1]
+            # Trova indice nel array principale
+            indice_principale = self.clienti.index(cliente_selezionato)
+            
+        except ValueError:
+            print("Inserire un numero valido.")
+            return False
+            
+        # Mostra dati attuali
+        print("\n--- DATI ATTUALI ---")
+        self._mostra_dettagli_cliente(cliente_selezionato)
+        
+        # Modifica campi
+        print("\n--- MODIFICA (invio per mantenere valore attuale) ---")
+        
+        nome = input(f"Nome [{cliente_selezionato.nome}]: ").strip()
+        if nome:
+            cliente_selezionato.nome = nome
+            
+        cf = input(f"Codice Fiscale [{cliente_selezionato.cf}]: ").strip()
+        if cf:
+            cliente_selezionato.cf = cf
+            
+        piva = input(f"Partita IVA [{cliente_selezionato.piva}]: ").strip()
+        if piva:
+            cliente_selezionato.piva = piva
+            
+        indirizzo = input(f"Indirizzo [{cliente_selezionato.indirizzo}]: ").strip()
+        if indirizzo:
+            cliente_selezionato.indirizzo = indirizzo
+            
+        citta = input(f"Città [{cliente_selezionato.citta}]: ").strip()
+        if citta:
+            cliente_selezionato.citta = citta
+            
+        cap = input(f"CAP [{cliente_selezionato.cap}]: ").strip()
+        if cap:
+            cliente_selezionato.cap = cap
+            
+        provincia = input(f"Provincia [{cliente_selezionato.provincia}]: ").strip().upper()
+        if provincia:
+            cliente_selezionato.provincia = provincia
+            
+        # Mostra riepilogo modifiche
+        print("\n--- RIEPILOGO MODIFICHE ---")
+        self._mostra_dettagli_cliente(cliente_selezionato)
+        
+        if input("\nConfermare le modifiche? (s/n): ").lower() == 's':
+            self.modificato = True
+            print("Cliente modificato con successo!")
+            return True
+        else:
+            # Ricarica dati originali
+            self.carica_clienti()
+            print("Modifiche annullate.")
+            return False
+            
+    def elimina_cliente(self) -> bool:
+        """Elimina un cliente"""
+        if not self.clienti:
+            print("Nessun cliente disponibile.")
+            return False
+            
+        # Cerca o seleziona cliente
+        termine = input("\nCerca cliente da eliminare (invio per vedere tutti): ").strip()
+        
+        if termine:
+            clienti_trovati = self.cerca_clienti(termine)
+            if not clienti_trovati:
+                print("Nessun cliente trovato.")
+                return False
+        else:
+            clienti_trovati = self.clienti
+            
+        # Mostra lista clienti
+        print("\nClienti trovati:")
+        for i, cliente in enumerate(clienti_trovati):
+            print(f"{i + 1}. {cliente.nome} - P.IVA: {cliente.piva}")
+            
+        # Seleziona cliente
+        try:
+            scelta = int(input("\nNumero cliente da eliminare (0 per annullare): "))
+            if scelta == 0:
+                return False
+                
+            if scelta < 1 or scelta > len(clienti_trovati):
+                print("Scelta non valida.")
+                return False
+                
+            cliente_da_eliminare = clienti_trovati[scelta - 1]
+            
+        except ValueError:
+            print("Inserire un numero valido.")
+            return False
+            
+        # Mostra dettagli e conferma
+        print("\n--- CLIENTE DA ELIMINARE ---")
+        self._mostra_dettagli_cliente(cliente_da_eliminare)
+        
+        print("\n⚠️  ATTENZIONE: Questa operazione è irreversibile!")
+        if input(f"Confermare eliminazione di '{cliente_da_eliminare.nome}'? (s/n): ").lower() == 's':
+            self.clienti.remove(cliente_da_eliminare)
+            self.modificato = True
+            print(f"\nCliente '{cliente_da_eliminare.nome}' eliminato.")
+            return True
+        else:
+            print("Eliminazione annullata.")
+            return False
+            
+    def _mostra_dettagli_cliente(self, cliente: Cliente):
+        """Mostra i dettagli di un cliente"""
+        print(f"Nome: {cliente.nome}")
+        print(f"C.F.: {cliente.cf or 'Non specificato'}")
+        print(f"P.IVA: {cliente.piva or 'Non specificata'}")
+        print(f"Indirizzo: {cliente.indirizzo}")
+        print(f"Città: {cliente.citta}")
+        print(f"CAP: {cliente.cap or 'Non specificato'}")
+        print(f"Provincia: {cliente.provincia or 'Non specificata'}")
+        
+    def seleziona_cliente(self) -> Optional[Cliente]:
+        """Permette all'utente di selezionare un cliente con ricerca"""
+        if not self.clienti:
+            print("Nessun cliente disponibile")
+            return None
+            
+        # Offri opzione di ricerca
+        usa_ricerca = input("\nCercare un cliente specifico? (s/n): ").lower() == 's'
+        
+        if usa_ricerca:
+            termine = input("Inserisci nome, P.IVA o città: ").strip()
+            if termine:
+                clienti_trovati = self.cerca_clienti(termine)
+                if not clienti_trovati:
+                    print("Nessun cliente trovato.")
+                    if input("Mostrare tutti i clienti? (s/n): ").lower() != 's':
+                        return None
+                    clienti_trovati = self.clienti
+            else:
+                clienti_trovati = self.clienti
+        else:
+            clienti_trovati = self.clienti
+            
+        # Mostra clienti
+        print("\nSeleziona un cliente:")
+        for i, cliente in enumerate(clienti_trovati):
+            print(f"{i + 1}. {cliente.nome}")
+            
+        while True:
+            try:
+                scelta = input("\nNumero cliente (0 per annullare): ")
+                if scelta == '0':
+                    return None
+                    
+                indice = int(scelta) - 1
+                if 0 <= indice < len(clienti_trovati):
+                    return clienti_trovati[indice]
+                else:
+                    print("Numero non valido. Riprova.")
+            except ValueError:
+                print("Inserire un numero valido.")
+                
+    def esporta_clienti(self) -> bool:
+        """Esporta i clienti in formato CSV"""
+        try:
+            import csv
+            filename = f"clienti_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            
+            with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+                fieldnames = ['Nome', 'CF', 'P.IVA', 'Indirizzo', 'Città', 'CAP', 'Provincia']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                
+                writer.writeheader()
+                for cliente in self.clienti:
+                    writer.writerow({
+                        'Nome': cliente.nome,
+                        'CF': cliente.cf,
+                        'P.IVA': cliente.piva,
+                        'Indirizzo': cliente.indirizzo,
+                        'Città': cliente.citta,
+                        'CAP': cliente.cap,
+                        'Provincia': cliente.provincia
+                    })
+                    
+            print(f"Clienti esportati in: {filename}")
+            return True
+        except Exception as e:
+            print(f"Errore nell'esportazione: {e}")
+            return False
+
+
+class GestoreVociPreimpostate:
+    """Gestisce le voci preimpostate con funzionalità CRUD"""
+    
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+        self.voci: List[str] = []
+        self.modificato = False
+        
+    def carica_voci(self) -> bool:
+        """Carica le voci dal file"""
+        try:
+            if not os.path.exists(self.file_path):
+                print(f"File {self.file_path} non trovato. Creo nuovo file voci.")
+                self.voci = []
+                self.salva_voci()
+                return True
+                
+            with open(self.file_path, 'r', encoding='utf-8') as file:
+                self.voci = [line.strip() for line in file if line.strip()]
+            return True
+        except Exception as e:
+            print(f"Errore nel caricamento voci: {e}")
+            return False
+            
+    def salva_voci(self) -> bool:
+        """Salva le voci nel file"""
+        try:
+            # Crea backup prima di salvare
+            if os.path.exists(self.file_path):
+                backup_path = f"{self.file_path}.backup"
+                with open(self.file_path, 'r') as src, open(backup_path, 'w') as dst:
+                    dst.write(src.read())
+                    
+            # Salva nel file
+            with open(self.file_path, 'w', encoding='utf-8') as file:
+                for voce in self.voci:
+                    file.write(voce + '\n')
+                    
+            self.modificato = False
+            return True
+        except Exception as e:
+            print(f"Errore nel salvataggio voci: {e}")
+            return False
+            
+    def cerca_voci(self, termine: str) -> List[Tuple[int, str]]:
+        """Cerca voci che contengono il termine"""
+        termine = termine.lower()
+        risultati = []
+        
+        for i, voce in enumerate(self.voci):
+            if termine in voce.lower():
+                risultati.append((i, voce))
+                
+        return risultati
+        
+    def aggiungi_voce(self) -> bool:
+        """Aggiunge una nuova voce"""
+        print("\n=== AGGIUNGI NUOVA VOCE PREIMPOSTATA ===")
+        
+        voce = input("Inserisci la descrizione della voce: ").strip()
+        if not voce:
+            print("Descrizione obbligatoria!")
+            return False
+            
+        # Controlla duplicati
+        for v in self.voci:
+            if v.lower() == voce.lower():
+                print(f"ATTENZIONE: Voce '{voce}' già esistente!")
+                if input("Aggiungere comunque? (s/n): ").lower() != 's':
+                    return False
+                    
+        self.voci.append(voce)
+        self.modificato = True
+        print(f"\nVoce '{voce}' aggiunta con successo!")
+        return True
+        
+    def modifica_voce(self) -> bool:
+        """Modifica una voce esistente"""
+        if not self.voci:
+            print("Nessuna voce disponibile.")
+            return False
+            
+        # Cerca o mostra tutte
+        termine = input("\nCerca voce (invio per vedere tutte): ").strip()
+        
+        if termine:
+            voci_trovate = self.cerca_voci(termine)
+            if not voci_trovate:
+                print("Nessuna voce trovata.")
+                return False
+        else:
+            voci_trovate = [(i, voce) for i, voce in enumerate(self.voci)]
+            
+        # Mostra lista voci
+        print("\nVoci trovate:")
+        for idx, (i, voce) in enumerate(voci_trovate, 1):
+            print(f"{idx}. {voce}")
+            
+        # Seleziona voce
+        try:
+            scelta = int(input("\nNumero voce da modificare (0 per annullare): "))
+            if scelta == 0:
+                return False
+                
+            if scelta < 1 or scelta > len(voci_trovate):
+                print("Scelta non valida.")
+                return False
+                
+            indice_originale, voce_attuale = voci_trovate[scelta - 1]
+            
+        except ValueError:
+            print("Inserire un numero valido.")
+            return False
+            
+        # Modifica
+        print(f"\nVoce attuale: {voce_attuale}")
+        nuova_voce = input("Nuova descrizione (invio per annullare): ").strip()
+        
+        if not nuova_voce:
+            print("Modifica annullata.")
+            return False
+            
+        if input(f"\nConfermare modifica?\nDa: {voce_attuale}\nA: {nuova_voce}\n(s/n): ").lower() == 's':
+            self.voci[indice_originale] = nuova_voce
+            self.modificato = True
+            print("Voce modificata con successo!")
+            return True
+        else:
+            print("Modifica annullata.")
+            return False
+            
+    def elimina_voce(self) -> bool:
+        """Elimina una voce"""
+        if not self.voci:
+            print("Nessuna voce disponibile.")
+            return False
+            
+        # Cerca o mostra tutte
+        termine = input("\nCerca voce da eliminare (invio per vedere tutte): ").strip()
+        
+        if termine:
+            voci_trovate = self.cerca_voci(termine)
+            if not voci_trovate:
+                print("Nessuna voce trovata.")
+                return False
+        else:
+            voci_trovate = [(i, voce) for i, voce in enumerate(self.voci)]
+            
+        # Mostra lista voci
+        print("\nVoci trovate:")
+        for idx, (i, voce) in enumerate(voci_trovate, 1):
+            print(f"{idx}. {voce}")
+            
+        # Seleziona voce
+        try:
+            scelta = int(input("\nNumero voce da eliminare (0 per annullare): "))
+            if scelta == 0:
+                return False
+                
+            if scelta < 1 or scelta > len(voci_trovate):
+                print("Scelta non valida.")
+                return False
+                
+            indice_originale, voce_da_eliminare = voci_trovate[scelta - 1]
+            
+        except ValueError:
+            print("Inserire un numero valido.")
+            return False
+            
+        # Conferma eliminazione
+        print(f"\n⚠️  ATTENZIONE: Stai per eliminare:")
+        print(f"'{voce_da_eliminare}'")
+        
+        if input("\nConfermare eliminazione? (s/n): ").lower() == 's':
+            del self.voci[indice_originale]
+            self.modificato = True
+            print(f"\nVoce eliminata.")
+            return True
+        else:
+            print("Eliminazione annullata.")
+            return False
+            
+    def esporta_voci(self) -> bool:
+        """Esporta le voci in formato CSV"""
+        try:
+            import csv
+            filename = f"voci_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            
+            with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(['Descrizione Voce'])
+                
+                for voce in self.voci:
+                    writer.writerow([voce])
+                    
+            print(f"Voci esportate in: {filename}")
+            return True
+        except Exception as e:
+            print(f"Errore nell'esportazione: {e}")
+            return False
+            
+    def importa_voci(self) -> bool:
+        """Importa voci da file CSV"""
+        filename = input("Nome file CSV da importare: ").strip()
+        if not filename:
+            return False
+            
+        try:
+            import csv
+            nuove_voci = []
+            
+            with open(filename, 'r', encoding='utf-8') as csvfile:
+                reader = csv.reader(csvfile)
+                # Salta header se presente
+                first_row = next(reader, None)
+                if first_row and first_row[0].lower() != 'descrizione voce':
+                    nuove_voci.append(first_row[0])
+                    
+                for row in reader:
+                    if row and row[0].strip():
+                        nuove_voci.append(row[0].strip())
+                        
+            if not nuove_voci:
+                print("Nessuna voce trovata nel file.")
+                return False
+                
+            print(f"\nTrovate {len(nuove_voci)} voci da importare.")
+            print("Opzioni:")
+            print("1. Aggiungi alle voci esistenti")
+            print("2. Sostituisci tutte le voci")
+            print("0. Annulla")
+            
+            scelta = input("\nScelta: ")
+            
+            if scelta == '1':
+                # Aggiungi evitando duplicati
+                aggiunte = 0
+                for voce in nuove_voci:
+                    if voce not in self.voci:
+                        self.voci.append(voce)
+                        aggiunte += 1
+                print(f"\nAggiunte {aggiunte} nuove voci.")
+                self.modificato = True
+                return True
+                
+            elif scelta == '2':
+                if input(f"\nSostituire {len(self.voci)} voci con {len(nuove_voci)} nuove? (s/n): ").lower() == 's':
+                    self.voci = nuove_voci
+                    self.modificato = True
+                    print("Voci sostituite con successo!")
+                    return True
+                    
+            print("Importazione annullata.")
+            return False
+            
+        except FileNotFoundError:
+            print(f"File '{filename}' non trovato.")
+            return False
+        except Exception as e:
+            print(f"Errore nell'importazione: {e}")
+            return False
+
+
+class ConfigManager:
+    """Gestisce la configurazione dell'applicazione"""
+    
+    DEFAULT_CONFIG = {
+        "percorsi": {
+            "file_clienti": "clienti.json",
+            "file_voci_preimpostate": "voci_preimpostate.txt",
+            "directory_output": "fatture_generate"
+        },
+        "impostazioni": {
+            "soglia_marca_bollo": 77.47,
+            "importo_marca_bollo": 2.00,
+            "aliquota_rivalsa": 0.04,
+            "formato_data": "%d/%m/%Y",
+            "formato_nome_file": "{tipo}_{cliente}_{data}.md"
+        },
+        "conti_bancari": [],
+        "testi": {
+            "marca_bollo": "Marca da bollo su fattura elettronica",
+            "rivalsa": "Rivalsa previdenziale 4%"
+        }
+    }
+    
+    def __init__(self, config_path: str = "config_fatture.json"):
+        self.config_path = config_path
+        self.config = self.DEFAULT_CONFIG.copy()
+        
+    def load(self) -> bool:
+        """Carica la configurazione da file"""
+        try:
+            if os.path.exists(self.config_path):
+                with open(self.config_path, 'r', encoding='utf-8') as f:
+                    loaded_config = json.load(f)
+                    # Aggiorna solo le chiavi presenti
+                    for key, value in loaded_config.items():
+                        if isinstance(value, dict) and key in self.config:
+                            self.config[key].update(value)
+                        else:
+                            self.config[key] = value
+                return True
+            else:
+                print(f"File di configurazione non trovato. Uso configurazione predefinita.")
+                return True
+        except Exception as e:
+            print(f"Errore nel caricamento configurazione: {e}")
+            print("Uso configurazione predefinita.")
+            return True
+            
+    def get(self, path: str, default=None):
+        """Ottiene un valore dalla configurazione usando un percorso puntato"""
+        keys = path.split('.')
+        value = self.config
+        for key in keys:
+            if isinstance(value, dict) and key in value:
+                value = value[key]
+            else:
+                return default
+        return value
+
+
+class GestoreFattureAvanzato:
+    """Versione avanzata del gestore fatture con configurazione"""
+    
+    def __init__(self, config: ConfigManager):
+        self.config = config
+        self.voci: List[Voce] = []
+        self.voci_preimpostate: List[str] = []
+        
+        # Crea directory output se non esiste
+        output_dir = self.config.get('percorsi.directory_output', '.')
+        if output_dir and output_dir != '.' and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+    def carica_voci_preimpostate(self) -> bool:
+        """Carica le voci preimpostate"""
+        file_path = self.config.get('percorsi.file_voci_preimpostate')
+        if not file_path:
+            return True
+            
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    self.voci_preimpostate = [line.strip() for line in file if line.strip()]
+            return True
+        except Exception as e:
+            print(f"Errore nel caricamento voci: {e}")
+            return False
+            
+    def calcola_totale_con_config(self) -> Tuple[Decimal, List[Voce]]:
+        """Calcola totale usando la configurazione"""
+        voci_complete = self.voci.copy()
+        totale = sum(v.importo for v in voci_complete)
+        
+        # Marca da bollo
+        soglia = Decimal(str(self.config.get('impostazioni.soglia_marca_bollo', 77.47)))
+        if totale > soglia:
+            importo_bollo = Decimal(str(self.config.get('impostazioni.importo_marca_bollo', 2.00)))
+            testo_bollo = self.config.get('testi.marca_bollo', 'Marca da bollo')
+            
+            print(f"\nImporto totale €{totale:.2f} > €{soglia:.2f}")
+            if input(f"Aggiungere {testo_bollo} €{importo_bollo:.2f}? (s/n): ").lower() == 's':
+                voci_complete.append(Voce(testo_bollo, importo_bollo))
+                totale += importo_bollo
+                
+        # Rivalsa
+        aliquota = Decimal(str(self.config.get('impostazioni.aliquota_rivalsa', 0.04)))
+        testo_rivalsa = self.config.get('testi.rivalsa', 'Rivalsa previdenziale')
+        
+        if input(f"\nApplicare {testo_rivalsa}? (s/n): ").lower() == 's':
+            importo_rivalsa = (totale * aliquota).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            voci_complete.append(Voce(testo_rivalsa, importo_rivalsa))
+            totale += importo_rivalsa
+            
+        return totale, voci_complete
+        
+    def seleziona_conto_da_config(self) -> str:
+        """Seleziona conto usando la configurazione"""
+        conti = self.config.get('conti_bancari', [])
+        if not conti:
+            # Fallback ai conti predefiniti
+            return self._seleziona_conto_default()
+            
+        print("\nSeleziona conto di pagamento:")
+        for i, conto in enumerate(conti):
+            print(f"{i + 1}. {conto.get('nome', 'Conto ' + str(i+1))}")
+            
+        while True:
+            try:
+                scelta = int(input("Numero conto: ")) - 1
+                if 0 <= scelta < len(conti):
+                    c = conti[scelta]
+                    return f"{c['nome']} - IBAN: {c['iban']} - BIC: {c.get('bic', 'N/D')}"
+                else:
+                    print("Scelta non valida.")
+            except ValueError:
+                print("Inserire un numero valido.")
+                
+    def _seleziona_conto_default(self) -> str:
+        """Selezione conto predefinita"""
+        conti = {
+            1: "Unicredit - IBAN: IT86W0200860900000003387471 - BIC: UNCRITM1XXX",
+            2: "Fideuram - IBAN: IT04D0329601601000067433373 - BIC: FIDEITM1XXX"
+        }
+        
+        print("\nSeleziona conto di pagamento:")
+        for num, desc in conti.items():
+            print(f"{num}. {desc.split(' - ')[0]}")
+            
+        while True:
+            try:
+                scelta = int(input("Numero: "))
+                if scelta in conti:
+                    return conti[scelta]
+                print("Scelta non valida.")
+            except ValueError:
+                print("Inserire un numero.")
+                
+    def salva_con_nome_configurato(self, output: str, cliente: Cliente, tipo_doc: str):
+        """Salva usando il formato nome file configurato"""
+        output_dir = self.config.get('percorsi.directory_output', '.')
+        formato = self.config.get('impostazioni.formato_nome_file', '{tipo}_{cliente}_{data}.md')
+        formato_data = self.config.get('impostazioni.formato_data', '%Y%m%d')
+        
+        # Prepara variabili per il formato
+        tipo = "avviso" if tipo_doc == 'a' else "fattura"
+        nome_cliente = cliente.nome.replace(' ', '_').replace('/', '-').lower()
+        data = datetime.now().strftime(formato_data.replace('/', ''))
+        
+        # Genera nome file
+        filename = formato.format(
+            tipo=tipo,
+            cliente=nome_cliente,
+            data=data
+        )
+        
+        # Path completo
+        if output_dir != '.':
+            filepath = os.path.join(output_dir, filename)
+        else:
+            filepath = filename
+            
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(output)
+            print(f"\nFile salvato: {filepath}")
+            return True
+        except Exception as e:
+            print(f"Errore salvataggio: {e}")
+            return False
+
+
+def menu_gestione_voci(gestore_voci: GestoreVociPreimpostate):
+    """Menu per la gestione delle voci preimpostate"""
+    while True:
+        print("\n=== GESTIONE VOCI PREIMPOSTATE ===")
+        print(f"Totale voci: {len(gestore_voci.voci)}")
+        if gestore_voci.modificato:
+            print("⚠️  Modifiche non salvate!")
+        
+        print("\n1. Visualizza tutte le voci")
+        print("2. Cerca voce")
+        print("3. Aggiungi nuova voce")
+        print("4. Modifica voce")
+        print("5. Elimina voce")
+        print("6. Esporta voci (CSV)")
+        print("7. Importa voci (CSV)")
+        print("8. Salva modifiche")
+        print("0. Torna al menu principale")
+        
+        scelta = input("\nScelta: ")
+        
+        if scelta == '0':
+            if gestore_voci.modificato:
+                if input("\nCi sono modifiche non salvate. Salvare? (s/n): ").lower() == 's':
+                    gestore_voci.salva_voci()
+            break
+            
+        elif scelta == '1':
+            # Visualizza tutte
+            if not gestore_voci.voci:
+                print("\nNessuna voce presente.")
+            else:
+                print(f"\n=== LISTA VOCI PREIMPOSTATE ({len(gestore_voci.voci)}) ===")
+                for i, voce in enumerate(gestore_voci.voci, 1):
+                    print(f"{i}. {voce}")
+                    
+        elif scelta == '2':
+            # Cerca
+            termine = input("\nCerca nel testo delle voci: ")
+            if termine:
+                risultati = gestore_voci.cerca_voci(termine)
+                if risultati:
+                    print(f"\n=== RISULTATI ({len(risultati)}) ===")
+                    for i, voce in risultati:
+                        print(f"{i+1}. {voce}")
+                else:
+                    print("Nessuna voce trovata.")
+                    
+        elif scelta == '3':
+            # Aggiungi
+            if gestore_voci.aggiungi_voce():
+                print("\n✓ Voce aggiunta con successo!")
+                
+        elif scelta == '4':
+            # Modifica
+            if gestore_voci.modifica_voce():
+                print("\n✓ Voce modificata con successo!")
+                
+        elif scelta == '5':
+            # Elimina
+            if gestore_voci.elimina_voce():
+                print("\n✓ Voce eliminata con successo!")
+                
+        elif scelta == '6':
+            # Esporta
+            if gestore_voci.esporta_voci():
+                print("\n✓ Esportazione completata!")
+                
+        elif scelta == '7':
+            # Importa
+            if gestore_voci.importa_voci():
+                print("\n✓ Importazione completata!")
+                
+        elif scelta == '8':
+            # Salva
+            if gestore_voci.salva_voci():
+                print("\n✓ Modifiche salvate con successo!")
+            else:
+                print("\n✗ Errore nel salvataggio!")
+                
+        else:
+            print("Scelta non valida.")
+
+
+def menu_gestione_clienti(gestore_clienti: GestoreClientiAvanzato):
+    """Menu per la gestione clienti"""
+    while True:
+        print("\n=== GESTIONE CLIENTI ===")
+        print(f"Totale clienti: {len(gestore_clienti.clienti)}")
+        if gestore_clienti.modificato:
+            print("⚠️  Modifiche non salvate!")
+        
+        print("\n1. Visualizza tutti i clienti")
+        print("2. Cerca cliente")
+        print("3. Aggiungi nuovo cliente")
+        print("4. Modifica cliente")
+        print("5. Elimina cliente")
+        print("6. Esporta clienti (CSV)")
+        print("7. Salva modifiche")
+        print("0. Torna al menu principale")
+        
+        scelta = input("\nScelta: ")
+        
+        if scelta == '0':
+            if gestore_clienti.modificato:
+                if input("\nCi sono modifiche non salvate. Salvare? (s/n): ").lower() == 's':
+                    gestore_clienti.salva_clienti()
+            break
+            
+        elif scelta == '1':
+            # Visualizza tutti
+            if not gestore_clienti.clienti:
+                print("\nNessun cliente presente.")
+            else:
+                print(f"\n=== LISTA CLIENTI ({len(gestore_clienti.clienti)}) ===")
+                for i, cliente in enumerate(gestore_clienti.clienti, 1):
+                    print(f"\n{i}. {cliente.nome}")
+                    print(f"   P.IVA: {cliente.piva or 'N/D'} - C.F.: {cliente.cf or 'N/D'}")
+                    print(f"   {cliente.indirizzo}, {cliente.cap} {cliente.citta} ({cliente.provincia})")
+                    
+        elif scelta == '2':
+            # Cerca
+            termine = input("\nCerca per nome, P.IVA, C.F. o città: ")
+            if termine:
+                risultati = gestore_clienti.cerca_clienti(termine)
+                if risultati:
+                    print(f"\n=== RISULTATI ({len(risultati)}) ===")
+                    for cliente in risultati:
+                        print(f"\n{cliente.nome}")
+                        gestore_clienti._mostra_dettagli_cliente(cliente)
+                else:
+                    print("Nessun cliente trovato.")
+                    
+        elif scelta == '3':
+            # Aggiungi
+            if gestore_clienti.aggiungi_cliente():
+                print("\n✓ Cliente aggiunto con successo!")
+                
+        elif scelta == '4':
+            # Modifica
+            if gestore_clienti.modifica_cliente():
+                print("\n✓ Cliente modificato con successo!")
+                
+        elif scelta == '5':
+            # Elimina
+            if gestore_clienti.elimina_cliente():
+                print("\n✓ Cliente eliminato con successo!")
+                
+        elif scelta == '6':
+            # Esporta
+            if gestore_clienti.esporta_clienti():
+                print("\n✓ Esportazione completata!")
+                
+        elif scelta == '7':
+            # Salva
+            if gestore_clienti.salva_clienti():
+                print("\n✓ Modifiche salvate con successo!")
+            else:
+                print("\n✗ Errore nel salvataggio!")
+                
+        else:
+            print("Scelta non valida.")
+
+
+def main():
+    """Funzione principale con supporto argomenti linea di comando"""
+    parser = argparse.ArgumentParser(description='Gestione Fatture e Avvisi')
+    parser.add_argument('-c', '--config', default='config_fatture.json',
+                       help='Percorso file di configurazione')
+    parser.add_argument('-t', '--tipo', choices=['a', 'f'],
+                       help='Tipo documento: a=avviso, f=fattura')
+    parser.add_argument('--no-config', action='store_true',
+                       help='Non usare file di configurazione')
+    parser.add_argument('--gestione-clienti', action='store_true',
+                       help='Apri direttamente gestione clienti')
+    parser.add_argument('--gestione-voci', action='store_true',
+                       help='Apri direttamente gestione voci preimpostate')
+    
+    args = parser.parse_args()
+    
+    print("\n=== GESTIONE FATTURE E AVVISI PRO ===\n")
+    
+    # Carica configurazione
+    config = ConfigManager(args.config)
+    if not args.no_config:
+        config.load()
+        
+    # Inizializza gestore clienti avanzato
+    file_clienti = config.get('percorsi.file_clienti', 'clienti.json')
+    gestore_clienti_avanzato = GestoreClientiAvanzato(file_clienti)
+    
+    # Inizializza gestore voci preimpostate
+    file_voci = config.get('percorsi.file_voci_preimpostate', 'voci_preimpostate.txt')
+    gestore_voci = GestoreVociPreimpostate(file_voci)
+    
+    # Carica clienti
+    if not gestore_clienti_avanzato.carica_clienti():
+        print("Errore nel caricamento clienti.")
+        return
+        
+    # Carica voci
+    if not gestore_voci.carica_voci():
+        print("Errore nel caricamento voci preimpostate.")
+        return
+        
+    # Se richiesta gestione clienti diretta
+    if args.gestione_clienti:
+        menu_gestione_clienti(gestore_clienti_avanzato)
+        return
+        
+    # Se richiesta gestione voci diretta
+    if args.gestione_voci:
+        menu_gestione_voci(gestore_voci)
+        return
+        
+    # Menu principale
+    while True:
+        print("\n=== MENU PRINCIPALE ===")
+        print("1. Crea nuova fattura/avviso")
+        print("2. Gestione clienti")
+        print("3. Gestione voci preimpostate")
+        print("4. Configurazione")
+        print("0. Esci")
+        
+        scelta = input("\nScelta: ")
+        
+        if scelta == '0':
+            print("\nArrivederci!")
+            break
+            
+        elif scelta == '1':
+            # Crea fattura/avviso
+            crea_documento(config, gestore_clienti_avanzato, args.tipo)
+            
+        elif scelta == '2':
+            # Gestione clienti
+            menu_gestione_clienti(gestore_clienti_avanzato)
+            
+        elif scelta == '3':
+            # Gestione voci preimpostate
+            menu_gestione_voci(gestore_voci)
+            
+        elif scelta == '4':
+            # Configurazione
+            print("\nFunzionalità configurazione non ancora implementata.")
+            print("Modifica manualmente il file:", args.config)
+            
+        else:
+            print("Scelta non valida.")
+
+
+def crea_documento(config: ConfigManager, gestore_clienti: GestoreClientiAvanzato, tipo_predefinito=None):
+    """Crea un nuovo documento fattura/avviso"""
+    # Import moduli necessari dalla versione base
+    from aiutofatture_migliorato import GestoreFatture
+    
+    # Usa gestore avanzato per fatture
+    gestore_fatture_avanzato = GestoreFattureAvanzato(config)
+    
+    # Carica voci preimpostate
+    if not gestore_fatture_avanzato.carica_voci_preimpostate():
+        return
+        
+    # Tipo documento
+    if tipo_predefinito:
+        tipo = tipo_predefinito
+    else:
+        while True:
+            tipo = input("\nTipo documento - [a]vviso o [f]attura (q per annullare): ").lower()
+            if tipo == 'q':
+                return
+            if tipo in ['a', 'f']:
+                break
+            print("Scelta non valida.")
+            
+    # Usa il gestore base per l'inserimento voci
+    gestore_base = GestoreFatture(config.get('percorsi.file_voci_preimpostate'))
+    gestore_base.voci_preimpostate = gestore_fatture_avanzato.voci_preimpostate
+    
+    # Seleziona cliente
+    cliente = gestore_clienti.seleziona_cliente()
+    if not cliente:
+        print("Nessun cliente selezionato.")
+        return
+        
+    # Inserisci voci
+    gestore_base.inserisci_voci()
+    if not gestore_base.voci:
+        print("Nessuna voce inserita.")
+        return
+        
+    # Copia voci nel gestore avanzato
+    gestore_fatture_avanzato.voci = gestore_base.voci
+    
+    # Calcola con configurazione
+    totale, voci_complete = gestore_fatture_avanzato.calcola_totale_con_config()
+    
+    # Seleziona conto
+    conto = gestore_fatture_avanzato.seleziona_conto_da_config()
+    
+    # Genera output
+    output = gestore_base.genera_output(cliente, totale, voci_complete, conto, tipo)
+    
+    # Mostra output
+    print("\n" + "="*60)
+    print(output)
+    print("="*60)
+    
+    # Salva con opzioni avanzate
+    print("\nOpzioni:")
+    print("1. Salva con nome configurato")
+    print("2. Copia negli appunti")
+    print("3. Entrambi")
+    print("0. Nessuna azione")
+    
+    scelta = input("\nScelta: ")
+    
+    if scelta in ['1', '3']:
+        gestore_fatture_avanzato.salva_con_nome_configurato(output, cliente, tipo)
+        
+    if scelta in ['2', '3']:
+        try:
+            import pyperclip
+            pyperclip.copy(output)
+            print("\nCopiato negli appunti!")
+        except:
+            print("\nErrore copia appunti")
+            
+    print("\nOperazione completata!")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nInterrotto.")
+        sys.exit(0)

@@ -1,0 +1,309 @@
+#!/bin/bash
+set -o pipefail
+
+# --- Configurazioni Iniziali ---
+
+# Definizioni Colori (verranno usate solo se NO_COLOR è false)
+COLOR_RESET='\e[0m'
+COLOR_RED='\e[31m'
+COLOR_GREEN='\e[32m'
+COLOR_BLUE='\e[34m'
+COLOR_YELLOW='\e[33m'
+BOLD='\e[1m'
+
+# Variabili per le opzioni con valori di default
+USE_CLIPBOARD=false
+SAVE_FILE=false
+NO_COLOR=false
+URL=""
+LLM_MODEL="deepseek70b" # Default LLM model
+OUTPUT_FILE="titoliseo_output.txt" # Default output file name
+SUGGESTION_COUNT=5 # Default number of suggestions
+TARGET_LANGUAGE="italiana" # Default language
+CURL_TIMEOUT=20 # Timeout per curl in secondi
+
+# --- Funzioni ---
+
+# Funzione per mostrare l'help
+show_help() {
+    echo "Uso: titoliseo [opzioni] <URL>"
+    echo "Recupera il contenuto di un URL, lo passa a un LLM e genera titoli/descrizioni SEO e parole chiave."
+    echo ""
+    echo "Opzioni:"
+    echo "  -h, --help              Mostra questo messaggio di aiuto."
+    echo "  -c, --clip              Copia l'output negli appunti (richiede xclip o pbcopy)."
+    echo "  -f, --file              Salva l'output in un file (usa -o per specificare il nome)."
+    echo "  -o, --output <file>     Specifica il file dove salvare l'output (default: ${OUTPUT_FILE}). Implica -f."
+    echo "  -m, --model <modello>   Specifica il modello LLM da usare (es. gemini, gpt-4, claude-3-opus... default: ${LLM_MODEL})."
+    echo "  -n, --count <numero>    Genera N titoli/descrizioni (default: ${SUGGESTION_COUNT})."
+    echo "  -l, --language <lingua> Specifica la lingua per l'output (default: ${TARGET_LANGUAGE})."
+    echo "  --no-color              Disabilita i colori nell'output."
+    echo ""
+    echo "Esempio:"
+    echo "  titoliseo -c -n 3 -m gpt-4 https://www.example.com"
+    exit 0
+}
+
+# Funzione per gestire gli errori (esce dallo script)
+error() {
+    local message="$1"
+    if [ "$NO_COLOR" = false ]; then
+        echo -e "${COLOR_RED}${BOLD}ERRORE:${COLOR_RESET}${COLOR_RED} $message${COLOR_RESET}" >&2
+    else
+        echo "ERRORE: $message" >&2
+    fi
+    exit 1
+}
+
+# Funzione per i messaggi di info
+info() {
+    local message="$1"
+    if [ "$NO_COLOR" = false ]; then
+        echo -e "${COLOR_BLUE}${BOLD}INFO:${COLOR_RESET}${COLOR_BLUE} $message${COLOR_RESET}"
+    else
+        echo "INFO: $message"
+    fi
+}
+
+# Funzione per i messaggi di avviso (non esce dallo script)
+warning() {
+    local message="$1"
+    if [ "$NO_COLOR" = false ]; then
+        echo -e "${COLOR_YELLOW}${BOLD}ATTENZIONE:${COLOR_RESET}${COLOR_YELLOW} $message${COLOR_RESET}" >&2
+    else
+        echo "ATTENZIONE: $message" >&2
+    fi
+}
+
+# Funzione per verificare i requisiti
+check_requirements() {
+    command -v curl >/dev/null 2>&1 || error "'curl' non è installato. Installalo per continuare."
+    command -v llm >/dev/null 2>&1 || error "'llm' non è installato. Vedi https://llm.datasette.io/ per l'installazione."
+}
+
+# Funzione per copiare negli appunti
+copy_to_clipboard() {
+    local content="$1"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "$content" | pbcopy
+        info "Output copiato negli appunti (macOS)."
+    elif command -v xclip >/dev/null 2>&1; then
+        echo "$content" | xclip -selection clipboard
+        info "Output copiato negli appunti (xclip)."
+    else
+        warning "Nessun comando disponibile per la clipboard (installa 'xclip' su Linux o usa macOS)."
+    fi
+}
+
+# --- Parsing delle Opzioni ---
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -h|--help) show_help ;;
+        -c|--clip) USE_CLIPBOARD=true; shift ;;
+        -f|--file) SAVE_FILE=true; shift ;;
+        -o|--output) SAVE_FILE=true; OUTPUT_FILE="$2"; shift 2 ;; # -o implica -f
+        -m|--model) LLM_MODEL="$2"; shift 2 ;;
+        -n|--count)
+            # Verifica che l'argomento sia un numero intero positivo
+            if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
+                SUGGESTION_COUNT="$2"
+            else
+                error "L'argomento per -n/--count deve essere un numero intero positivo."
+            fi
+            shift 2
+            ;;
+        -l|--language) TARGET_LANGUAGE="$2"; shift 2 ;;
+        --no-color) NO_COLOR=true; shift ;;
+        -*) error "Opzione non riconosciuta: $1. Usa -h per l'aiuto." ;;
+        *)
+            # Gestisce l'URL come argomento posizionale
+            if [[ -z "$URL" ]]; then
+                URL="$1"
+            else
+                error "URL già specificato ('$URL'). È possibile specificare un solo URL."
+            fi
+            shift
+            ;;
+    esac
+done
+
+# --- Validazioni Input ---
+
+# Verifica che sia stato fornito un URL
+[[ -z "$URL" ]] && error "URL non specificato. Usa -h per vedere l'help."
+
+# Validazione base dell'URL
+if [[ ! "$URL" =~ ^https?:// ]]; then
+    error "URL fornito non sembra valido. Deve iniziare con http:// o https://"
+fi
+
+# Verifica i requisiti software
+check_requirements
+
+# --- Logica Principale ---
+
+# Componi l'URL per r.jina.ai
+JINA_URL="https://r.jina.ai/$URL"
+info "Processando l'URL: $URL (via Jina: $JINA_URL)"
+
+# Recupera il contenuto markdown dall'URL di Jina con timeout
+info "Recupero contenuto (timeout: ${CURL_TIMEOUT}s)..."
+MARKDOWN_CONTENT=$(curl -s --max-time "$CURL_TIMEOUT" --location "$JINA_URL") # Aggiunto --location per seguire redirect
+
+# Verifica se il comando curl ha avuto successo e se c'è contenuto
+curl_exit_code=$?
+if [[ $curl_exit_code -ne 0 ]]; then
+    error "curl ha fallito con codice $curl_exit_code. Impossibile recuperare il contenuto da $JINA_URL."
+fi
+if [[ -z "$MARKDOWN_CONTENT" ]]; then
+    error "Nessun contenuto recuperato da $JINA_URL. L'URL è valido e la pagina non è vuota?"
+fi
+
+# Genera dinamicamente le parti del prompt basate su SUGGESTION_COUNT
+title_lines=""
+desc_lines=""
+for i in $(seq 1 $SUGGESTION_COUNT); do
+    title_lines+=$(printf "%d. [inserisci qui il meta title %d]\n" "$i" "$i")
+    desc_lines+=$(printf "%d. [inserisci qui la meta description %d]\n" "$i" "$i")
+done
+
+# Rimuovi l'ultimo newline aggiunto dai cicli precedenti
+title_lines=$(echo -n "$title_lines")
+desc_lines=$(echo -n "$desc_lines")
+
+# Costruisci il System Prompt dinamicamente usando printf per sicurezza
+SYSTEM_PROMPT=$(printf "Sei un esperto SEO multilingue. Il tuo compito è generare titoli, meta descrizioni e parole chiave SEO efficaci per il contenuto fornito, basato sull'URL originale.
+GENERA SOLO ED ESCLUSIVAMENTE NELLA LINGUA RICHIESTA:
+%d meta title (circa 50-60 caratteri)
+%d meta description (circa 130-155 caratteri)
+Minimo 5 parole chiave SEO strategiche
+
+FORMATO OUTPUT RICHIESTO (USA ESATTAMENTE QUESTO FORMATO):
+
+META TITLE:
+%s
+
+META DESCRIPTION:
+%s
+
+PAROLE CHIAVE SEO:
+1. [parola chiave 1]
+2. [parola chiave 2]
+3. [parola chiave 3]
+4. [parola chiave 4]
+5. [parola chiave 5]
+6. [parola chiave 6 - se appropriata]
+7. [parola chiave 7 - se appropriata]
+
+REQUISITI OBBLIGATORI:
+- Scrivi ESCLUSIVAMENTE nella lingua: %s.
+- NON fare riassunti, analisi o aggiungere commenti.
+- NON aggiungere altro testo oltre ai meta tag e parole chiave richiesti nel formato specificato.
+- Includi keyword rilevanti estratte dal contenuto fornito.
+- Rendi il testo accattivante e orientato al click (call-to-action implicita o esplicita se appropriato).
+- Rispetta i limiti di caratteri indicati (sono approssimativi, ma fondamentali).
+- Evita keyword stuffing (ripetizione eccessiva di parole chiave).
+- Mantieni uno stile naturale e leggibile per l'utente.
+- NON USARE le parentesi quadre [ ] nell'output finale dei titoli/descrizioni/parole chiave.
+- Assicurati che ogni titolo e descrizione sia unico.
+- Genera MINIMO 5 parole chiave, fino a 7 se il contenuto lo permette.
+- Le parole chiave devono essere specifiche, rilevanti e con potenziale di traffico SEO.
+- Separa chiaramente le sezioni META TITLE, META DESCRIPTION e PAROLE CHIAVE SEO come mostrato." \
+"$SUGGESTION_COUNT" "$SUGGESTION_COUNT" "$title_lines" "$desc_lines" "$TARGET_LANGUAGE")
+
+# Esegui l'analisi con llm
+info "Elaborazione contenuto con LLM (modello: $LLM_MODEL)..."
+OUTPUT=$(echo "$MARKDOWN_CONTENT" | llm -m "$LLM_MODEL" --system "$SYSTEM_PROMPT")
+llm_exit_code=$?
+
+# Verifica se llm ha avuto successo e se l'output sembra valido
+if [[ $llm_exit_code -ne 0 ]]; then
+    error "LLM (comando 'llm') ha fallito con codice $llm_exit_code."
+fi
+if [[ -z "$OUTPUT" ]]; then
+    error "Nessun output generato da LLM. Controlla la configurazione di LLM o il modello."
+fi
+# Controllo euristico: verifica che contenga le sezioni attese
+if ! echo "$OUTPUT" | grep -q "META TITLE:" || ! echo "$OUTPUT" | grep -q "META DESCRIPTION:" || ! echo "$OUTPUT" | grep -q "PAROLE CHIAVE SEO:"; then
+    warning "L'output di LLM non sembra contenere le sezioni 'META TITLE:', 'META DESCRIPTION:' e 'PAROLE CHIAVE SEO:' attese. Potrebbe non essere nel formato corretto."
+    # Non usciamo con errore, ma avvisiamo l'utente
+fi
+
+
+# --- Gestione dell'Output ---
+
+# Salva su file se richiesto
+if [ "$SAVE_FILE" = true ]; then
+    # Usa printf per evitare problemi con output che inizia con "-"
+    printf "%s\n" "$OUTPUT" > "$OUTPUT_FILE"
+    if [[ $? -eq 0 ]]; then
+        info "Output salvato in '$OUTPUT_FILE'"
+    else
+        error "Impossibile scrivere nel file '$OUTPUT_FILE'."
+    fi
+fi
+
+# Copia negli appunti se richiesto
+if [ "$USE_CLIPBOARD" = true ]; then
+    copy_to_clipboard "$OUTPUT"
+fi
+
+# Mostra sempre l'output nel terminale, formattato e con conteggio caratteri
+
+# Intestazione
+if [ "$NO_COLOR" = false ]; then
+    echo -e "\n${COLOR_GREEN}${BOLD}=== Risultati SEO per: $URL ===${COLOR_RESET}"
+else
+    echo -e "\n=== Risultati SEO per: $URL ==="
+fi
+
+# Stampa output con conteggio caratteri e formattazione
+current_section=""
+echo "$OUTPUT" | while IFS= read -r line || [[ -n "$line" ]]; do # || [[ -n "$line" ]] per gestire l'ultima riga senza newline
+    if [[ "$line" =~ ^META\ TITLE: ]]; then
+        current_section="title"
+        if [ "$NO_COLOR" = false ]; then
+            echo -e "${BOLD}META TITLE:${COLOR_RESET}"
+        else
+            echo "META TITLE:"
+        fi
+    elif [[ "$line" =~ ^META\ DESCRIPTION: ]]; then
+        current_section="description"
+         if [ "$NO_COLOR" = false ]; then
+            echo -e "\n${BOLD}META DESCRIPTION:${COLOR_RESET}" # Aggiunge spazio prima delle descrizioni
+        else
+            echo -e "\nMETA DESCRIPTION:"
+        fi
+    elif [[ "$line" =~ ^PAROLE\ CHIAVE\ SEO: ]]; then
+        current_section="keywords"
+         if [ "$NO_COLOR" = false ]; then
+            echo -e "\n${BOLD}PAROLE CHIAVE SEO:${COLOR_RESET}" # Aggiunge spazio prima delle parole chiave
+        else
+            echo -e "\nPAROLE CHIAVE SEO:"
+        fi
+    elif [[ "$line" =~ ^[0-9]+\.\ .* ]]; then
+        # Estrai il testo dopo "N. "
+        content=$(echo "$line" | sed 's/^[0-9]\+\.\ //')
+        # Per le parole chiave, non calcoliamo i caratteri
+        if [[ "$current_section" == "keywords" ]]; then
+            printf "%s\n" "$line"
+        else
+            # Siamo nelle sezioni title/description, calcoliamo i caratteri
+            len=$(echo -n "$content" | wc -m)
+            printf "%s \t(%d caratteri)\n" "$line" "$len"
+        fi
+    elif [[ -n "$line" ]]; then # Stampa altre righe non vuote (spazi, ecc.)
+        echo "$line"
+    fi
+done
+
+# Footer
+if [ "$NO_COLOR" = false ]; then
+    echo -e "${COLOR_GREEN}${BOLD}============================================${COLOR_RESET}\n"
+else
+    echo -e "============================================\n"
+fi
+
+info "Completato."
+exit 0

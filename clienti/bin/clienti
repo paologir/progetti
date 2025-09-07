@@ -1,0 +1,5 @@
+#!/bin/bash
+# Wrapper script for clienti CRM
+cd /opt/progetti/clienti
+source venv/bin/activate
+python clienti.py "$@"

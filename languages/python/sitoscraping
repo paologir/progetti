@@ -1,0 +1,285 @@
+#!/usr/bin/env python3
+
+import os
+import requests
+import argparse
+import sys
+import time
+from bs4 import BeautifulSoup
+from markdownify import markdownify as md
+from urllib.parse import urljoin, urlparse, unquote
+from pathlib import Path
+from collections import OrderedDict
+
+def ensure_scheme(url):
+    """Aggiunge 'https://' se l'URL non ha uno schema."""
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        return "https://" + url
+    return url
+
+def is_valid_url(url):
+    """Verifica se un URL è valido."""
+    parsed = urlparse(url)
+    return bool(parsed.netloc) and bool(parsed.scheme)
+
+def get_all_links(url):
+    """Ottieni tutti i link interni di una pagina."""
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        domain = urlparse(url).netloc
+        links = set()
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag['href']
+            full_url = urljoin(url, href)
+            if urlparse(full_url).netloc == domain:
+                # Normalizza URL per evitare duplicati (rimuovi trailing slashes e query parameters)
+                normalized_url = urlparse(full_url)
+                path = normalized_url.path.rstrip('/')
+                normalized_full_url = f"{normalized_url.scheme}://{normalized_url.netloc}{path}"
+                links.add(normalized_full_url)
+        return sorted(links)  # Restituisci lista ordinata per avere un output consistente
+    except requests.RequestException as e:
+        print(f"Errore durante il recupero dei link da {url}: {e}")
+        return []
+
+def extract_page_content(url):
+    """Estrai il contenuto principale di una pagina."""
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Estrai il titolo della pagina
+        title = soup.title.string if soup.title else "Nessun titolo"
+        
+        # Rimuovi script e tag non necessari
+        for script_or_style in soup(['script', 'style', 'header', 'footer', 'nav']):
+            script_or_style.decompose()
+        
+        # Prova a trovare contenuto principale
+        main_content = None
+        for selector in ['main', 'article', '.content', '#content', '.main', '#main']:
+            content = soup.select_one(selector)
+            if content:
+                main_content = content
+                break
+        
+        # Se non troviamo un contenitore specifico, usa il body
+        if not main_content:
+            main_content = soup.body
+        
+        # Converti in Markdown
+        markdown_content = f"# {title}\n\n{md(str(main_content))}" if main_content else ""
+        return markdown_content.strip(), title
+    except requests.RequestException as e:
+        print(f"Errore durante l'estrazione del contenuto da {url}: {e}")
+        return "", "Errore"
+
+def generate_safe_filename(url, title=None):
+    """
+    Genera un nome file leggibile basato sull'URL o sul titolo.
+    """
+    parsed = urlparse(url)
+    path = unquote(parsed.path.strip('/'))  # Rimuove '/' iniziali/finali e decodifica URL-encoded
+    
+    if not path:
+        path = "index"  # Usa 'index' se il percorso è vuoto (homepage)
+    
+    # Prendi l'ultima parte del percorso come nome del file
+    filename = path.split('/')[-1] or "index"
+    
+    # Se abbiamo un titolo, usalo per generare un nome file più descrittivo
+    if title and title != "Nessun titolo":
+        # Pulisci il titolo e limitalo a 50 caratteri
+        safe_title = "".join(c if c.isalnum() or c in [' ', '-', '_'] else '_' for c in title)
+        safe_title = safe_title.replace(' ', '_').lower()[:50]
+        filename = f"{safe_title}"
+    
+    return f"{filename}.md"
+
+def save_as_markdown(content, output_dir, filename, url=None):
+    """Salva il contenuto come file Markdown."""
+    filepath = os.path.join(output_dir, filename)
+    
+    # Aggiungi l'URL originale come metadato
+    if url:
+        content = f"---\nurl: {url}\n---\n\n{content}"
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"Salvato: {filepath}")
+    return filepath
+
+def generate_summary_markdown(output_dir, processed_files, base_url, summary_filename=None):
+    """Genera un file Markdown unico combinando tutti i file Markdown nella cartella di output."""
+    # Se non è stato specificato un nome per il file di riepilogo, usa il default
+    if not summary_filename:
+        site_name = generate_site_name(base_url)
+        summary_filename = f"{site_name}-summary.md"
+    
+    summary_path = os.path.join(output_dir, summary_filename)
+    all_content = []
+    seen_contents = set()  # Per evitare duplicazioni
+    
+    # Leggi tutti i file Markdown nella cartella di output
+    for filepath in processed_files:
+        filename = os.path.basename(filepath)
+        if filename != summary_filename:
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    
+                    # Rimuovi i metadati YAML dal contenuto prima di controllare duplicazioni
+                    clean_content = content
+                    if content.startswith('---'):
+                        end_idx = content.find('---', 3)
+                        if end_idx > 0:
+                            clean_content = content[end_idx+3:].strip()
+                    
+                    # Verifica duplicazioni basate sul contenuto principale
+                    content_hash = hash(clean_content)
+                    if content_hash not in seen_contents and clean_content:
+                        seen_contents.add(content_hash)
+                        # Estrai il titolo dal file o usa il nome del file
+                        title_line = next((line for line in clean_content.split('\n') if line.startswith('# ')), None)
+                        title = title_line[2:] if title_line else filename
+                        all_content.append(f"# {title}\n\n{clean_content}\n\n---\n")
+            except Exception as e:
+                print(f"Errore durante la lettura di {filepath}: {e}")
+    
+    # Salva il contenuto combinato nel file di riepilogo
+    if all_content:
+        # Aggiungi una intestazione generale al file summary
+        site_name = generate_site_name(base_url)
+        header = f"# Riepilogo del sito {site_name}\n\n"
+        header += f"Sito web: {base_url}\n"
+        header += f"Data di scaricamento: {time.strftime('%d/%m/%Y %H:%M:%S')}\n"
+        header += f"Numero di pagine: {len(processed_files)}\n\n"
+        header += "---\n\n"
+        
+        with open(summary_path, 'w', encoding='utf-8') as f:
+            f.write(header + "\n".join(all_content))
+        print(f"File di riepilogo generato: {summary_path}")
+    else:
+        print("Nessun contenuto disponibile per generare il file di riepilogo.")
+
+def select_links_interactive(links):
+    """Mostra i link trovati e consente all'utente di selezionare quali scaricare."""
+    if not links:
+        print("Nessun link trovato.")
+        return []
+    
+    print("\nLink trovati:")
+    for i, link in enumerate(links, 1):
+        print(f"{i}. {link}")
+    
+    while True:
+        choice = input("\nOpzioni:\n1. Scaricare tutti i link\n2. Selezionare link specifici\nScelta (1/2): ").strip()
+        
+        if choice == '1':
+            return links
+        elif choice == '2':
+            while True:
+                try:
+                    selection = input("Inserisci i numeri dei link da scaricare (separati da virgole, es. 1,3,5): ").strip()
+                    if not selection:
+                        print("Nessuna selezione effettuata.")
+                        return []
+                    
+                    selected_indices = [int(idx.strip()) for idx in selection.split(',')]
+                    selected_links = [links[idx-1] for idx in selected_indices if 1 <= idx <= len(links)]
+                    
+                    if not selected_links:
+                        print("Selezione non valida. Riprova.")
+                        continue
+                        
+                    return selected_links
+                except (ValueError, IndexError):
+                    print("Input non valido. Inserisci numeri separati da virgole.")
+        else:
+            print("Scelta non valida. Inserisci 1 o 2.")
+
+def generate_site_name(url):
+    """Genera un nome leggibile dal dominio del sito."""
+    parsed = urlparse(url)
+    domain = parsed.netloc
+    # Rimuovi www. se presente e prendi la prima parte del dominio
+    site_name = domain.replace('www.', '').split('.')[0]
+    return site_name
+
+def process_website(base_url, output_dir="output", interactive=True):
+    """Processa un sito web e salva le pagine come file Markdown."""
+    base_url = ensure_scheme(base_url)
+    if not is_valid_url(base_url):
+        print("URL non valido.")
+        return
+    
+    # Crea la directory di output
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Ottieni tutti i link interni
+    print(f"Ricerca dei link in: {base_url}")
+    links = get_all_links(base_url)
+    
+    if not links:
+        print("Nessun link trovato. Verificare l'URL o la connessione internet.")
+        return
+    
+    print(f"Trovati {len(links)} link interni.")
+    
+    # Se richiesto, chiedi all'utente quali link elaborare
+    links_to_process = select_links_interactive(links) if interactive else links
+    
+    if not links_to_process:
+        print("Nessun link selezionato per l'elaborazione.")
+        return
+    
+    processed_files = []
+    for link in links_to_process:
+        print(f"Elaborazione di: {link}")
+        content, title = extract_page_content(link)
+        if content:
+            try:
+                filename = generate_safe_filename(link, title)
+                filepath = save_as_markdown(content, output_dir, filename, link)
+                processed_files.append(filepath)
+            except Exception as e:
+                print(f"Errore durante la conversione in Markdown di {link}: {e}")
+    
+    # Genera il file di riepilogo
+    if processed_files:
+        # Genera il nome del file di riepilogo basato sul nome del sito
+        site_name = generate_site_name(base_url)
+        summary_filename = f"{site_name}-summary.md"
+        generate_summary_markdown(output_dir, processed_files, base_url, summary_filename)
+        print(f"\nElaborazione completata. {len(processed_files)} pagine salvate in '{output_dir}'.")
+        print(f"Riepilogo generato: {os.path.join(output_dir, summary_filename)}")
+    else:
+        print("Nessuna pagina elaborata con successo.")
+
+def main():
+    # Configura parser argomenti
+    parser = argparse.ArgumentParser(description='Scarica pagine web e convertile in Markdown.')
+    parser.add_argument('url', nargs='?', help='URL del sito da elaborare')
+    parser.add_argument('-o', '--output', default='output', help='Directory di output (default: output)')
+    parser.add_argument('-a', '--all', action='store_true', help='Elabora tutti i link senza interazione')
+    parser.add_argument('-s', '--summary', help='Nome personalizzato per il file di riepilogo (default: nomesito-summary.md)')
+    
+    args = parser.parse_args()
+    
+    # Se l'URL non è stato fornito come argomento, chiedi all'utente
+    base_url = args.url
+    if not base_url:
+        base_url = input("Inserisci l'URL del sito: ").strip()
+        if not base_url:
+            print("Nessun URL fornito. Uscita.")
+            sys.exit(1)
+    
+    # Processa il sito
+    process_website(base_url, args.output, not args.all)
+
+if __name__ == "__main__":
+    main()

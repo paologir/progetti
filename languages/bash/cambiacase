@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Funzione per mostrare l'uso dello script
+usage() {
+    echo "Uso: $0 [-l | -u] [directory]"
+    echo "  -l    Rinomina i file in lettere minuscole"
+    echo "  -u    Rinomina i file in lettere maiuscole"
+    echo "  directory  La directory in cui rinominare i file (default: directory corrente)"
+    exit 1
+}
+
+# Controlla se sono stati forniti almeno un argomento
+if [ $# -lt 1 ]; then
+    usage
+fi
+
+# Imposta la directory di default
+directory="."
+
+# Analizza gli argomenti
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -l)
+            action="tolower"
+            shift
+            ;;
+        -u)
+            action="toupper"
+            shift
+            ;;
+        *)
+            directory="$1"
+            shift
+            ;;
+    esac
+done
+
+# Controlla se la directory esiste
+if [ ! -d "$directory" ]; then
+    echo "La directory $directory non esiste."
+    exit 1
+fi
+
+# Esegue l'azione specificata
+case "$action" in
+    tolower)
+        for file in "$directory"/*; do
+            if [ -f "$file" ]; then
+                newname=$(basename "$file" | tr '[:upper:]' '[:lower:]')
+                if [ "$file" != "$directory/$newname" ]; then
+                    mv "$file" "$directory/$newname"
+                fi
+            fi
+        done
+        ;;
+    toupper)
+        for file in "$directory"/*; do
+            if [ -f "$file" ]; then
+                newname=$(basename "$file" | tr '[:lower:]' '[:upper:]')
+                if [ "$file" != "$directory/$newname" ]; then
+                    mv "$file" "$directory/$newname"
+                fi
+            fi
+        done
+        ;;
+    *)
+        echo "Nessuna azione specificata. Usa -l per minuscole o -u per maiuscole."
+        usage
+        ;;
+esac

@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+import os
+import google.generativeai as genai
+import pyperclip
+from prompt_toolkit import PromptSession
+from prompt_toolkit.shortcuts import prompt
+
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY non trovata nelle variabili d'ambiente")
+
+genai.configure(api_key=GOOGLE_API_KEY)
+
+ERRI_DE_LUCA_SYSTEM_PROMPT = """
+Ruolo e Obiettivo: Sei un emulatore dello stile di scrittura di Erri De Luca. Il tuo obiettivo non è imitare i suoi contenuti specifici, ma catturare la sua 'voce' unica: scarna, fisica, poetica e spirituale. Devi generare testi che sembrino scritti da lui, rispettandone il tono, il ritmo e le scelte lessicali. Devi rispondere sempre e solo nello stile di scrittura di Erri De Luca.
+Principi Guida:
+1) Economia della Parola: Sii essenziale. Usa frasi brevi, a volte brevissime. Ogni parola deve avere un peso specifico. Elimina il superfluo, gli aggettivi decorativi, gli avverbi inutili. Privilegia la coordinazione (frasi collegate da 'e', 'ma', 'o') alla subordinazione complessa. La tua prosa deve essere incisiva, quasi scolpita.
+2) Lessico della Materia: Attingi a un vocabolario concreto e fisico. Le tue parole devono appartenere al mondo dei sensi e degli elementi.
+
+   - Corpo: Usa termini come ossa, sangue, pelle, nervi, respiro, nodo, palmo, nocche.
+
+   - Natura: Fai riferimento a pietra, crepa, radice, mare, vento, neve, cima, legno, polvere.
+
+   - Mestieri: Impiega parole legate al lavoro manuale: chiodo, calce, filo, impasto, corda.
+3) Tono Spirituale e Ancestrale: Scrivi come se ogni piccolo gesto avesse un'eco biblica o mitologica. Anche nel descrivere il quotidiano, alludi a un significato più profondo. Usa un tono a tratti profetico, sentenzioso. La giustizia, il torto, la fedeltà, il tradimento sono concetti da trattare con gravità assoluta.
+4) Metafore Fisiche: Costruisci le tue metafore e similitudini partendo dal corpo e dalla natura. Esempi di costruzione: 'L'attesa era un chiodo piantato nella carne', 'La sua voce era asciutta come terra d'agosto', 'I ricordi sono nodi nelle ossa'.
+5) Prospettiva Contraria: Adotta uno sguardo obliquo sulle cose. Scrivi dalla prospettiva di chi sta ai margini, di chi perde, di chi si oppone. Metti in discussione le verità comuni. Cerca la 'crepa' nella superficie liscia della realtà. Pensa 'contro' la corrente.
+6) Frasi Iniziali e Finali: Inizia spesso i periodi con 'E', 'Ma', 'Perché' per creare un senso di continuità discorsiva e di ineluttabilità. Concludi i testi con una frase breve, quasi un aforisma, che sigilli il pensiero in modo definitivo, lasciando una sensazione di densità e riflessione.
+
+Esempio di applicazione (Cosa fare e cosa non fare):
+Tema: La solitudine.
+Stile da evitare: 'La solitudine è una sensazione molto triste di vuoto interiore che spesso mi assale quando nessuno mi è vicino, facendomi sentire perso e malinconico.'
+Stile da emulare: 'La solitudine non è vuoto. È un peso sulle ossa. Uno spazio pieno di tutto quello che manca. Non cerchi compagnia, impari a bastare.'
+"""
+
+def choose_model():
+    """Presenta un menù di modelli e restituisce il nome del modello scelto."""
+    print("Scegli un modello:")
+    valid_models = [m for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+    for i, m in enumerate(valid_models, 1):
+        print(f"{i}. {m.name}")
+    
+    while True:
+        choice = input("Inserisci il numero del modello (o premi invio per il modello predefinito): ")
+        if choice == "":
+            return "gemini-1.5-flash"  # Modello predefinito
+        try:
+            model_index = int(choice) - 1
+            if 0 <= model_index < len(valid_models):
+                return valid_models[model_index].name
+            else:
+                print("Numero non valido. Riprova.")
+        except ValueError:
+            print("Inserisci un numero valido. Riprova.")
+
+def get_multiline_input():
+    """Gestisce l'input multilinea."""
+    print("Ask me anything (termina con 'EOF' su una nuova linea):")
+    session = PromptSession()
+    lines = []
+    while True:
+        try:
+            line = session.prompt('> ')
+            if line.strip().lower() == 'eof':
+                break
+            lines.append(line)
+        except EOFError:
+            break
+    return "\n".join(lines)
+
+def save_response(response):
+    """Gestisce il salvataggio della risposta."""
+    while True:
+        save_choice = input("\nSalvare la risposta? (c=clipboard, f=file, n=nessuno): ").lower()
+        if save_choice == 'c':
+            pyperclip.copy(response)
+            print("Risposta copiata nella clipboard.")
+            break
+        elif save_choice == 'f':
+            filename = input("Nome del file: ")
+            try:
+                with open(filename, "w") as f:
+                    f.write(response)
+                print(f"Risposta salvata in {filename}.")
+                break
+            except IOError as e:
+                print(f"Errore nel salvare il file: {e}")
+        elif save_choice == 'n':
+            break
+        else:
+            print("Scelta non valida. Riprova.")
+
+def main():
+    try:
+        model_name = choose_model()
+        model = genai.GenerativeModel(
+            model_name,
+            system_instruction=ERRI_DE_LUCA_SYSTEM_PROMPT
+        )
+        chat = model.start_chat(history=[])
+
+        while True:
+            user_input = get_multiline_input()
+            if user_input.lower() == "exit":
+                break
+
+            if not user_input.strip():
+                print("Input vuoto. Per favore, inserisci un messaggio.")
+                continue
+
+            try:
+                response = chat.send_message(user_input, stream=True)
+                full_response = ""
+                for chunk in response:
+                    if hasattr(chunk, 'text') and chunk.text:
+                        print(chunk.text, end='', flush=True)
+                        full_response += chunk.text
+                print()  # Nuova linea dopo la risposta completa
+
+                save_response(full_response)
+
+                while True:
+                    continue_choice = input("\nContinuare la conversazione? (s/n): ").lower()
+                    if continue_choice in ['s', 'n']:
+                        break
+                    print("Scelta non valida. Inserisci 's' per sì o 'n' per no.")
+                
+                if continue_choice != 's':
+                    break
+
+            except Exception as e:
+                print(f"Si è verificato un errore durante la generazione della risposta: {e}")
+
+    except Exception as e:
+        print(f"Si è verificato un errore: {e}")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+import asyncio
+import sys
+import os
+import pyperclip
+import re
+from crawl4ai import AsyncWebCrawler
+
+async def convert_url_to_markdown(url):
+    async with AsyncWebCrawler(verbose=True) as crawler:
+        result = await crawler.arun(url=url)
+        return result.markdown
+
+def save_to_file(markdown, filename="output.md"):
+    with open(filename, "w") as file:
+        file.write(markdown)
+    print(f"Markdown salvato in {filename}")
+
+def copy_to_clipboard(markdown):
+    pyperclip.copy(markdown)
+    print("Markdown copiato negli appunti")
+
+def validate_url(url):
+    # Aggiungi il prefisso https:// se non è presente
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+    
+    # Verifica se l'URL è valido
+    regex = re.compile(
+        r'^(?:http|ftp)s?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
+        r'localhost|'  # localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|'  # ...or ipv4
+        r'\[?[A-F0-9]*:[A-F0-9:]+\]?)'  # ...or ipv6
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    
+    if re.match(regex, url) is None:
+        raise ValueError("URL non valido")
+    
+    return url
+
+async def main():
+    if len(sys.argv) < 2:
+        print("Uso: python script.py <url> [--save <filename>] [--copy]")
+        sys.exit(1)
+
+    url = sys.argv[1]
+    save_option = "--save" in sys.argv
+    copy_option = "--copy" in sys.argv
+
+    try:
+        url = validate_url(url)
+        markdown = await convert_url_to_markdown(url)
+        print("Markdown generato:")
+        print(markdown)
+
+        if save_option:
+            filename = sys.argv[sys.argv.index("--save") + 1] if "--save" in sys.argv else "output.md"
+            save_to_file(markdown, filename)
+
+        if copy_option:
+            copy_to_clipboard(markdown)
+
+    except Exception as e:
+        print(f"Errore durante l'elaborazione dell'URL: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    asyncio.run(main())

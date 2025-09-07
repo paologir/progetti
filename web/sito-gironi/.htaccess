@@ -1,0 +1,76 @@
+RewriteEngine On
+RewriteCond %{SERVER_PORT} 80
+RewriteCond %{REQUEST_URI} !^/[0-9]+\..+\.cpaneldcv$
+RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteRule ^(.*)$ https://www.gironi.it/$1 [R=301,L]
+
+RewriteCond %{HTTP_HOST} !^(.*)\.gironi\.it$ [NC]
+RewriteRule ^(.*)$ https://www.gironi.it/$1 [R=301,L]
+
+
+RewriteBase /
+RewriteRule ^index\.php$ http://www.gironi.it/ [L,R=301]
+
+ErrorDocument 404 /tu.html
+
+# Redirect 301 /index.php https://www.gironi.it/index.html
+
+Redirect 301 /utility/riv_calendario.php https://www.gironi.it/blog/calendario-rivoluzionario-francese/
+Redirect 301 /chisono.php https://www.gironi.it
+Redirect 301 /ecologia/hamachi.php https://www.gironi.it/retropc
+Redirect 301 /programmi/cdex.php https://www.gironi.it/blog/estrarre-tracce-audio-trasformarle-mp3-cdex/
+Redirect 301 /programmi/irfanview.php https://www.gironi.it/blog/irfanview-gestire-le-immagini-velocemente-gratuitamente/
+Redirect 301 /programmi/audacity.php https://www.gironi.it/blog/audacity-leditor-audio-open-source-semplice-funzionale/
+Redirect 301 /programmi/freecommander.php https://www.gironi.it/blog/strumenti-per-lavorare-da-riga-di-comando-in-windows/
+Redirect 301 /blog/unexpected-end-of-file-in-wordpress/ https://www.gironi.it/blog
+Redirect 301 /blog/miniguida-per-principanti-per-luso-di-google-adsense/ https://www.gironi.it/blog
+Redirect 301 /blog/seo-ghe-xeo/ https://www.gironi.it/blog
+Redirect 301 /programmi.php https://www.gironi.it
+Redirect 301 /poesia/amichai https://www.gironi.it/poesia/amichai.php
+Redirect 301 /blog/qualche-consapevolezza-in-piu/ https://www.gironi.it/blog/
+Redirect 301 /poesia/sereni https://www.gironi.it/poesia/sereni.php
+Redirect 301 /author/paolo/ https://www.gironi.it/blog
+Redirect 301 /guide.php https://www.gironi.it
+Redirect 301 /ecologia.php https://www.gironi.it/retropc
+Redirect 301 /blog/?p=148 https://www.gironi.it/blog
+Redirect 301 /portfolio.php https://www.gironi.it
+Redirect 301 /webdesign.php https://www.gironi.it
+Redirect 301 /blog/un-film-di-soli-volti/ https://www.gironi.it/blog
+Redirect 301 /logo-trasparente-in-prestashop/%7Bbase_dir https://www.gironi.it/blog
+Redirect 301 /blog/logo-trasparente-in-prestashop/%7Bbase_dir https://www.gironi.it/blog
+Redirect 301 /cookies https://www.gironi.it/cookies.html
+Redirect 301 /blog/?p=148 https://www.gironi.it/blog/
+Redirect 301 /blog/category/linux/page/2/ https://www.gironi.it/blog/en/
+Redirect 301 /tag/ntfs/ https://www.gironi.it/
+Redirect 301 /dimensioni-e-metriche-il-problema-del-mancato-allineamento/ https://www.gironi.it/blog/dimensioni-e-metriche-il-problema-del-mancato-allineamento/
+Redirect 301 /link.php https://www.gironi.it
+Redirect 301 /testi-sacri/satipatthana-sutta https://www.gironi.it/testi-sacri/satipatthana-sutta.php
+Redirect 301 /testi-sacri/protovangelo-di- https://www.gironi.it/testi-sacri/protovangelo-di-giacomo.php
+Redirect 301 /testi- https://www.gironi.it/testi-sacri
+Redirect 301 /testi-sacri/sutra-del-Diamante.php https://www.gironi.it/testi-sacri/sutra-del-diamante.php
+Redirect 301 /testi-sacri/vangelo https://www.gironi.it/testi-sacri/testi-cristiani.php
+Redirect 301 /testi-sacri/vangelo-tommaso https://www.gironi.it/testi-sacri/vangelo-tommaso.php
+Redirect 301 /paologironi/retropc https://www.gironi.it/retropc/
+Redirect 301 /soluzioni.php https://www.gironi.it
+Redirect 301 /utility/cambiacase.php https://gironi.it/utility/cambiacase.html
+Redirect 301 /utility/generatore-password.php https://gironi.it/utility/generatore-password.html
+
+# BEGIN cPanel-generated php ini directives, do not edit
+# Manual editing of this file may result in unexpected behavior.
+# To make changes to this file, use the cPanel MultiPHP INI Editor (Home >> Software >> MultiPHP INI Editor)
+# For more information, read our documentation (https://go.cpanel.net/EA4ModifyINI)
+<IfModule php7_module>
+   php_flag display_errors Off
+   php_value max_execution_time 30
+   php_value max_input_time 60
+   php_value max_input_vars 1000
+   php_value memory_limit 128M
+   php_value post_max_size 16M
+   php_value session.gc_maxlifetime 1440
+   php_value session.save_path "/var/cpanel/php/sessions/ea-php71"
+   php_value upload_max_filesize 16M
+   php_flag zlib.output_compression Off
+</IfModule>
+# END cPanel-generated php ini directives, do not edit
+
+

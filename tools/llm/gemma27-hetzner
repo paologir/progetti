@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+import os
+import requests
+import datetime
+import pyperclip
+
+LLAMA_SERVER_URL = "http://localhost:8080/completion"
+TEMPERATURE = 0.1
+TOP_P = 0.9
+N_PREDICT = 512
+
+DEFAULT_SYSTEM_PROMPT = """Sei un assistente IA altamente competente, addestrato per aiutare gli esseri umani in una vasta gamma di compiti. Il tuo obiettivo è essere utile, affidabile, onesto e obiettivo.
+Apprezzo che tu esprima opinioni, ovviamente devono essere sempre motivate.
+Quando ti chiedo di aiutarmi a formulare il testo di email ti chiedo un tono professionale ma anche amichevole, evitando inutili espressioni e rimanendo conciso. 
+Segui queste linee guida:
+Ragiona con attenzione: Preferisci sempre la precisione alla velocità di risposta. 
+Procedi per punti nel tuo ragionamento, suddividendo i compiti in passaggi sequenziali.
+Lingua di risposta: Rispondi in lingua italiana, a meno che non ti venga richiesto espressamente di utilizzare un'altra lingua. Rispondi sempre in maniera grammaticalmente e sintatticamente corretta. Non sopporto l'uso impreciso del linguaggio, nè le volgarità.
+Stile comunicativo: Fornisci risposte chiare e concise, offrendo informazioni accurate e pertinenti.
+Onestà intellettuale: Se non conosci la risposta a una domanda, ammettilo apertamente. Non fornire informazioni ingannevoli o potenzialmente offensive.
+Finalità benevola: Il tuo scopo è essere un assistente prezioso e benevolo per gli esseri umani."""
+
+conversation = []
+
+def get_system_prompt():
+    custom_prompt = input("\nBenvenuto! Fornisci un system prompt personalizzato (oppure premi enter per usare il prompt di default): ")
+    return custom_prompt.strip() or DEFAULT_SYSTEM_PROMPT
+
+def get_user_input():
+    lines = []
+    while True:
+        line = input()
+        if line.strip() == "!multi":
+            print("Inserisci il testo multilinea (termina con !end):")
+            while True:
+                multiline = input()
+                if multiline.strip() == "!end":
+                    break
+                lines.append(multiline)
+        elif line.strip() == "":
+            break
+        else:
+            lines.append(line)
+    return "\n".join(lines)
+
+def build_prompt(system_prompt, history):
+    prompt = f"<start_of_turn>user\n{system_prompt}<end_of_turn>\n"
+    for msg in history:
+        role = msg["role"]
+        token = "user" if role == "user" else "model"
+        prompt += f"<start_of_turn>{token}\n{msg['content']}<end_of_turn>\n"
+    prompt += "<start_of_turn>model\n"
+    return prompt
+
+def call_llama(prompt):
+    response = requests.post(LLAMA_SERVER_URL, json={
+        "prompt": prompt,
+        "temperature": TEMPERATURE,
+        "top_p": TOP_P,
+        "n_predict": N_PREDICT
+    }, timeout=60)
+    response.raise_for_status()
+    return response.json()["content"]
+
+def save_conversation_md(history):
+    now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+    filename = f"chat_gemma_{now}.md"
+    with open(filename, "w") as f:
+        f.write("# Conversazione con modello Gemma\n\n")
+        for turn in history:
+            if turn["role"] == "user":
+                f.write(f"**Utente:** {turn['content']}\n\n")
+            else:
+                f.write(f"**Gemma:** {turn['content']}\n\n")
+    print(f"[✓] Conversazione salvata in: {filename}")
+
+def main():
+    print("\nAssistente IA – Modello locale Gemma 3\nScrivi 'exit' per uscire.\n")
+    system_prompt = get_system_prompt()
+
+    while True:
+        print("\nInserisci il tuo prompt (usa !multi per iniziare un blocco multilinea e !end per terminarlo):")
+        user_input = get_user_input()
+        if user_input.lower() == "exit":
+            break
+        conversation.append({"role": "user", "content": user_input})
+        full_prompt = build_prompt(system_prompt, conversation)
+        try:
+            response = call_llama(full_prompt)
+            print("\n" + "#" * 100)
+            print(response)
+            print("#" * 100 + "\n")
+            conversation.append({"role": "model", "content": response})
+        except Exception as e:
+            print(f"[Errore] {e}")
+            continue
+
+    salva = input("\nSalvare la conversazione in Markdown? (s/n): ").strip().lower()
+    if salva == "s":
+        save_conversation_md(conversation)
+
+    ultima = conversation[-1]["content"] if conversation else ""
+    copia = input("Copiare l'ultima risposta in clipboard? (s/n): ").strip().lower()
+    if copia == "s":
+        try:
+            pyperclip.copy(ultima)
+            print("[✓] Ultima risposta copiata.")
+        except Exception as e:
+            print(f"[!] Errore clipboard: {e}")
+
+if __name__ == "__main__":
+    main()
+

@@ -1,0 +1,76 @@
+# Python virtual environments
+venv/
+env/
+.env
+*.env
+.venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Generated documents
+*.docx
+*.pdf
+output/
+
+# Data files
+*.csv
+*.xlsx
+*.json
+
+# Logs and temporary files
+*.log
+*.tmp
+temp/
+tmp/
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude agent files
+.claude/
+
+# Web scraping cache
+cache/
+sitemap_cache/
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/

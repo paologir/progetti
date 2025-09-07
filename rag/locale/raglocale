@@ -1,0 +1,134 @@
+#!/bin/bash
+
+# Script per interrogare il sistema RAG locale
+# Utilizzo: ./raglocale
+
+set -e  # Esci in caso di errore
+
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+DIM='\033[2m'
+
+# Funzione per stampare con colori
+print_header() {
+    echo -e "\n${BLUE}${BOLD}═══════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}${BOLD}  $1${NC}"
+    echo -e "${BLUE}${BOLD}═══════════════════════════════════════════════════════${NC}\n"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_info() {
+    echo -e "${YELLOW}→${NC} $1"
+}
+
+# Header principale
+clear
+print_header "🤖 RAG Locale - Sistema di Q&A basato su Obsidian"
+
+# Controlla se siamo nella directory corretta
+if [ ! -f "simple_rag.py" ]; then
+    print_error "Errore: simple_rag.py non trovato!"
+    print_info "Assicurati di eseguire questo script dalla directory RAG-locale"
+    exit 1
+fi
+
+# Controlla se l'ambiente virtuale esiste
+if [ ! -d ".venv" ]; then
+    print_error "Ambiente virtuale non trovato!"
+    print_info "Creazione ambiente virtuale in corso..."
+    python3 -m venv .venv
+    print_success "Ambiente virtuale creato"
+    
+    # Installa dipendenze
+    source .venv/bin/activate
+    print_info "Installazione dipendenze..."
+    pip install -r requirements.txt -q
+    print_success "Dipendenze installate"
+else
+    # Attiva l'ambiente virtuale
+    source .venv/bin/activate
+fi
+
+# Controlla se l'indice esiste
+if [ ! -d "obsidian_index" ]; then
+    print_error "Indice non trovato!"
+    print_info "È necessario eseguire prima l'ingestion dei documenti"
+    echo -e "${CYAN}Esegui: ${BOLD}./ingest-obsidian${NC}\n"
+    exit 1
+fi
+
+# Mostra info sull'indice
+INDEX_FILES=$(ls -1 obsidian_index/ 2>/dev/null | wc -l)
+INDEX_SIZE=$(du -sh obsidian_index 2>/dev/null | cut -f1)
+echo -e "${DIM}📚 Indice caricato: $INDEX_FILES file, dimensione $INDEX_SIZE${NC}"
+
+# Avvia il server llamafile se non è già attivo
+LLAMAFILE_PORT=8080
+if ! curl -s "http://localhost:$LLAMAFILE_PORT/health" > /dev/null 2>&1; then
+    print_info "Avvio del server LLM locale (llamafile)..."
+    
+    # Cerca il file llamafile
+    LLAMAFILE=$(find /opt/progetti/llm -name "*llamafile" -type f 2>/dev/null | head -1)
+    
+    if [ -z "$LLAMAFILE" ]; then
+        print_error "File llamafile non trovato!"
+        print_info "Assicurati che il modello LLM sia configurato correttamente"
+        exit 1
+    fi
+    
+    # Avvia llamafile in background
+    nohup "$LLAMAFILE" --server --host 0.0.0.0 --port $LLAMAFILE_PORT > llamafile.log 2>&1 &
+    
+    # Attendi che il server sia pronto
+    echo -n "Attesa avvio server LLM"
+    for i in {1..30}; do
+        if curl -s "http://localhost:$LLAMAFILE_PORT/health" > /dev/null 2>&1; then
+            echo ""
+            print_success "Server LLM pronto!"
+            break
+        fi
+        echo -n "."
+        sleep 1
+    done
+    
+    if ! curl -s "http://localhost:$LLAMAFILE_PORT/health" > /dev/null 2>&1; then
+        echo ""
+        print_error "Impossibile avviare il server LLM"
+        print_info "Controlla llamafile.log per i dettagli"
+        exit 1
+    fi
+else
+    print_success "Server LLM già attivo"
+fi
+
+# Istruzioni per l'utente
+echo -e "\n${GREEN}${BOLD}Sistema pronto!${NC}"
+echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${CYAN}Comandi disponibili:${NC}"
+echo -e "  ${BOLD}exit${NC}, ${BOLD}quit${NC}, ${BOLD}q${NC} - Esci dal sistema"
+echo -e "  ${BOLD}clear${NC}, ${BOLD}cls${NC}      - Pulisci lo schermo"
+echo -e "  ${BOLD}help${NC}, ${BOLD}?${NC}         - Mostra questa guida"
+echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "\n${MAGENTA}💡 Suggerimento:${NC} Puoi fare domande su clienti, progetti, date specifiche"
+echo -e "   Esempio: ${DIM}\"Quali sono i concorrenti di Didonè Comacchio?\"${NC}"
+echo -e "   Esempio: ${DIM}\"Cosa ho fatto oggi?\"${NC}\n"
+
+# Esegui il sistema RAG
+python simple_rag.py
+
+# Cleanup
+echo -e "\n${CYAN}Arrivederci!${NC}"

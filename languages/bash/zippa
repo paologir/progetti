@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Funzione di aiuto
+show_help() {
+    echo "Utilizzo: $0 directory nome_archivio"
+    echo "Crea un archivio zip di una directory"
+    echo
+    echo "Argomenti:"
+    echo "  directory       Directory da comprimere"
+    echo "  nome_archivio  Nome del file di output"
+    exit 1
+}
+
+# Controllo del numero di argomenti
+if [ $# -ne 2 ]; then
+    show_help
+fi
+
+directory="${1%/}"  # Rimuove lo slash finale se presente
+output_file="$2"
+
+# Aggiunge l'estensione .zip se non presente
+if [[ ! "$output_file" =~ \.zip$ ]]; then
+    output_file="${output_file}.zip"
+fi
+
+# Verifica che la directory esista
+if [ ! -d "$directory" ]; then
+    echo "Errore: La directory $directory non esiste"
+    exit 1
+fi
+
+# Naviga nella directory specificata
+cd "$directory" || { echo "Errore: Impossibile navigare nella directory $directory"; exit 1; }
+
+# Crea l'archivio senza includere i percorsi relativi
+echo "Esecuzione comando: zip -r $output_file ."
+if zip -r "$output_file" .; then
+    echo -e "\nArchivio $output_file creato con successo!"
+else
+    echo "Errore durante la creazione dell'archivio"
+    exit 1
+fi
+
+# Torna alla directory originale
+cd - > /dev/null

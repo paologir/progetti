@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Trova i file di dimensione superiore a una certa dimensione in una directory specificata
+# Uso: ./find_large_files.sh [dimensione] [directory]
+# Esempio: ./find_large_files.sh 200M /tmp
+# Se non viene specificata una dimensione, il default è 1G
+# Se non viene specificata una directory, il default è l'intero filesystem
+
+# Controlla se l'utente ha fornito parametri
+if [ -z "$1" ]; then
+  echo "Uso: ./find_large_files.sh [dimensione] [directory]"
+  echo "Esempio: ./find_large_files.sh 200M /tmp"
+  echo "Se non viene specificata una dimensione, il default è 1G"
+  echo "Se non viene specificata una directory, il default è l'intero filesystem"
+  exit 1
+fi
+
+# Controlla se l'utente ha fornito una dimensione
+if [ -z "$1" ]; then
+  size="1G"
+else
+  size=$(echo "$1" | tr '[:lower:]' '[:upper:]')  # Converti in maiuscolo per rendere case insensitive
+fi
+
+# Controlla se l'utente ha fornito una directory
+if [ -z "$2" ]; then
+  directory="/"
+else
+  directory="$2"
+fi
+
+# Trova i file di dimensione superiore alla dimensione specificata nella directory specificata
+find "$directory" -type f -size +"$size" -exec ls -lh {} + 2>/dev/null | awk '{print $5, $9}'
+
+echo "I file di dimensione superiore a $size nella directory $directory sono stati elencati sopra."

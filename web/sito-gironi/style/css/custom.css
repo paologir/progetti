@@ -1,0 +1,146 @@
+/* Custom styles aggiuntivi per gironi.it */
+
+/* Stile base per la barra di navigazione sticky */
+.navbar-sticky {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+/* Stile per l'icona hamburger */
+.hamburger {
+    width: 30px;
+    height: 24px;
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.hamburger span {
+    display: block;
+    position: absolute;
+    height: 3px;
+    width: 100%;
+    background: #333;
+    border-radius: 2px;
+    opacity: 1;
+    left: 0;
+    transform: rotate(0deg);
+    transition: .25s ease-in-out;
+}
+
+.hamburger span:nth-child(1) { top: 0px; }
+.hamburger span:nth-child(2) { top: 10px; }
+.hamburger span:nth-child(3) { top: 20px; }
+
+/* Animazione hamburger quando attivo (menu aperto) */
+.hamburger.active span:nth-child(1) {
+    top: 10px;
+    transform: rotate(135deg);
+}
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+    left: -30px;
+}
+.hamburger.active span:nth-child(3) {
+    top: 10px;
+    transform: rotate(-135deg);
+}
+
+/*
+  NUOVO MENU A TENDINA (MOBILE)
+  Sostituisce il vecchio .offcanvas-nav
+*/
+.navbar-collapse {
+    display: none; /* Nascosto di default su mobile */
+    position: absolute;
+    top: 100%; /* Si posiziona sotto la navbar */
+    left: 0;
+    right: 0;
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 1020;
+}
+
+.navbar-collapse.open {
+    display: block !important; /* Aggiunto !important per sovrascrivere Bootstrap */
+}
+
+.navbar-collapse .navbar-nav {
+    padding: 10px 20px;
+    width: 100%;
+}
+
+.navbar-collapse .nav-item {
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.navbar-collapse .nav-link {
+    color: #333 !important;
+    text-decoration: none;
+    font-size: 16px;
+    display: block;
+    padding: 10px 0;
+    width: 100%;
+}
+
+/* Nasconde gli elementi del vecchio offcanvas che non servono più */
+.offcanvas-header, .offcanvas-close {
+    display: none;
+}
+
+/* Gestione visibilità per schermi mobile e desktop */
+@media (max-width: 991.98px) {
+    .navbar-hamburger {
+        display: block !important; /* Mostra l'hamburger su mobile */
+    }
+    .navbar-nav {
+        flex-direction: column; /* Voci di menu in colonna */
+    }
+}
+
+@media (min-width: 992px) {
+    .navbar-hamburger {
+        display: none !important; /* Nasconde l'hamburger su desktop */
+    }
+    
+    .navbar-collapse {
+        display: flex !important; /* Mostra il menu normalmente su desktop */
+        position: static !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
+    
+    .navbar-collapse .navbar-nav {
+        flex-direction: row !important;
+        padding: 0 !important;
+    }
+    
+    .navbar-collapse .nav-item {
+        margin-bottom: 0 !important;
+        margin-left: 20px !important;
+        width: auto;
+    }
+    
+    .navbar-collapse .nav-link {
+        font-size: 14px !important;
+        padding: 10px 0 !important;
+    }
+}
+
+/* Colore arancione per le icone blob */
+.icon-blob-orange {
+    background: rgba(255, 152, 0, 0.1);
+}
+
+.color-orange {
+    color: #ff9800 !important;
+}

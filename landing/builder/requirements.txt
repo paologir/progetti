@@ -1,0 +1,39 @@
+# Landing Page Builder Dependencies
+# Core Python packages for landing page generation
+
+# Data handling and validation
+dataclasses-json>=0.5.7  # For dataclass serialization
+pydantic>=1.10.0         # Advanced data validation
+typing-extensions>=4.0.0  # Enhanced typing support
+
+# Web and HTTP utilities
+requests>=2.28.0         # HTTP requests for external integrations
+urllib3>=1.26.0          # URL utilities
+
+# Template and content processing
+jinja2>=3.1.0           # Template engine for dynamic content
+markdown>=3.4.0         # Markdown to HTML conversion
+beautifulsoup4>=4.11.0  # HTML parsing and manipulation
+
+# SEO and analytics integration
+python-sitemap>=1.0.0   # Sitemap generation
+google-analytics-data>=0.16.0  # Google Analytics integration (optional)
+
+# Performance and optimization
+cssmin>=0.2.0           # CSS minification
+jsmin>=3.0.1            # JavaScript minification
+htmlmin>=0.1.12         # HTML minification
+
+# Development and testing
+pytest>=7.0.0           # Testing framework
+pytest-cov>=4.0.0       # Coverage reporting
+black>=22.0.0           # Code formatting
+flake8>=5.0.0           # Code linting
+mypy>=0.991             # Type checking
+
+# Optional dependencies for advanced features
+# Uncomment if needed:
+# pillow>=9.0.0          # Image processing
+# pdfkit>=1.0.0          # PDF generation
+# selenium>=4.0.0        # Browser automation for testing
+# playwright>=1.20.0     # Modern browser automation

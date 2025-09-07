@@ -1,0 +1,351 @@
+#!/usr/bin/env python3
+"""
+GLM-4.5 Flash Chat CLI
+A comfortable terminal-based chat interface for GLM-4.5-flash model
+"""
+
+import os
+import sys
+import json
+from typing import List, Dict, Optional
+from datetime import datetime
+import pyperclip
+from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.styles import Style
+from colorama import init, Fore, Style as ColorStyle, Back
+
+# Initialize colorama for cross-platform color support
+init(autoreset=True)
+
+# Try to import the SDK
+try:
+    from zai import ZaiClient
+except ImportError:
+    print(f"{Fore.RED}Error: zai-sdk not installed{ColorStyle.RESET_ALL}")
+    print(f"Install it with: {Fore.CYAN}pip install zai-sdk{ColorStyle.RESET_ALL}")
+    sys.exit(1)
+
+
+class GLMChatCLI:
+    """Main chat CLI class for GLM-4.5 interaction"""
+    
+    def __init__(self):
+        self.api_key = None
+        self.client = None
+        self.model = "glm-4.5-flash"  # Default to flash model
+        self.conversation_history = []
+        self.system_prompt = None
+        self.session = PromptSession()
+        
+        # Style configuration
+        self.style = Style.from_dict({
+            'prompt': '#00aa00 bold',
+            'system': '#ff6600 bold',
+            'info': '#0088ff',
+            'error': '#ff0000 bold',
+            'success': '#00ff00',
+        })
+        
+    def print_banner(self):
+        """Print welcome banner"""
+        width = 60
+        
+        # Build banner line by line
+        lines = []
+        lines.append(f"{Fore.CYAN}╔{'═' * width}╗")
+        
+        # Title line - centered
+        title = "GLM-4.5 Flash Chat CLI Interface"
+        padding_left = (width - len(title)) // 2
+        padding_right = width - len(title) - padding_left
+        lines.append(f"{Fore.CYAN}║{' ' * padding_left}{Fore.WHITE}{title}{Fore.CYAN}{' ' * padding_right}║")
+        
+        # Empty line
+        lines.append(f"{Fore.CYAN}║{' ' * width}║")
+        
+        # Commands header
+        cmd_header = "Commands:"
+        lines.append(f"{Fore.CYAN}║  {Fore.YELLOW}{cmd_header}{' ' * (width - len(cmd_header) - 2)}{Fore.CYAN}║")
+        
+        # Command lines - without embedded colors to avoid alignment issues
+        commands = [
+            "  /exit     - Exit the chat",
+            "  /clear    - Clear conversation history", 
+            "  /system   - Change system prompt",
+            "  /save     - Save entire conversation to file",
+            "  \\         - Add backslash for multiline input"
+        ]
+        
+        for cmd in commands:
+            padding = width - len(cmd)
+            lines.append(f"{Fore.CYAN}║{Fore.GREEN}{cmd}{' ' * padding}{Fore.CYAN}║")
+        
+        lines.append(f"{Fore.CYAN}╚{'═' * width}╝{ColorStyle.RESET_ALL}")
+        
+        banner = '\n'.join(lines)
+        print(banner)
+    
+    def setup_api_key(self):
+        """Setup API key from environment or user input"""
+        self.api_key = os.getenv('GLM_API_KEY') or os.getenv('ZAI_API_KEY')
+        
+        if not self.api_key:
+            print(f"{Fore.YELLOW}API key not found in environment variables.{ColorStyle.RESET_ALL}")
+            print(f"Please enter your GLM/Z.AI API key (it will be hidden):")
+            
+            try:
+                from getpass import getpass
+                self.api_key = getpass("> ").strip()
+            except KeyboardInterrupt:
+                print(f"\n{Fore.RED}Cancelled.{ColorStyle.RESET_ALL}")
+                sys.exit(1)
+                
+        if not self.api_key:
+            print(f"{Fore.RED}API key is required to continue.{ColorStyle.RESET_ALL}")
+            sys.exit(1)
+            
+        # Initialize client
+        try:
+            self.client = ZaiClient(api_key=self.api_key)
+            print(f"{Fore.GREEN}✓ API client initialized successfully{ColorStyle.RESET_ALL}")
+        except Exception as e:
+            print(f"{Fore.RED}Failed to initialize API client: {e}{ColorStyle.RESET_ALL}")
+            sys.exit(1)
+    
+    def setup_system_prompt(self):
+        """Allow user to set a custom system prompt"""
+        print(f"\n{Fore.YELLOW}Would you like to set a custom system prompt? (y/n):{ColorStyle.RESET_ALL}")
+        choice = input("> ").strip().lower()
+        
+        if choice == 'y':
+            print(f"{Fore.CYAN}Enter your system prompt (type 'EOF' on a new line to finish):{ColorStyle.RESET_ALL}")
+            lines = []
+            while True:
+                line = input()
+                if line.strip().upper() == 'EOF':
+                    break
+                lines.append(line)
+            
+            self.system_prompt = '\n'.join(lines)
+            if self.system_prompt:
+                print(f"{Fore.GREEN}✓ System prompt set{ColorStyle.RESET_ALL}")
+                # Add system prompt to conversation history
+                self.conversation_history.append({
+                    "role": "system",
+                    "content": self.system_prompt
+                })
+    
+    def get_multiline_input(self) -> str:
+        """Get multiline input from user"""
+        print(f"{Fore.BLUE}You> {ColorStyle.RESET_ALL}", end='')
+        
+        # Get first line
+        try:
+            first_line = self.session.prompt('').strip()
+        except (EOFError, KeyboardInterrupt):
+            return None
+        
+        # Check if it's a command (starts with /)
+        if first_line.startswith('/'):
+            return first_line
+        
+        # If empty, return empty
+        if not first_line:
+            return ''
+        
+        # Check if user wants multiline input (ends with \)
+        if first_line.endswith('\\'):
+            # Multiline mode
+            print(f"{Fore.YELLOW}(multiline mode - type 'EOF' alone to send){ColorStyle.RESET_ALL}")
+            lines = [first_line[:-1]]  # Remove the backslash
+            
+            while True:
+                try:
+                    line = self.session.prompt('... ')
+                    if line.strip().upper() == 'EOF':
+                        break
+                    lines.append(line)
+                except (EOFError, KeyboardInterrupt):
+                    return None
+                    
+            return '\n'.join(lines)
+        else:
+            # Single line mode - send immediately
+            return first_line
+    
+    def save_response(self, response: str):
+        """Handle saving response to clipboard or file"""
+        print(f"\n{Fore.YELLOW}Save response? (c=clipboard, f=file, n=no):{ColorStyle.RESET_ALL}")
+        choice = input("> ").strip().lower()
+        
+        if choice == 'c':
+            try:
+                pyperclip.copy(response)
+                print(f"{Fore.GREEN}✓ Response copied to clipboard{ColorStyle.RESET_ALL}")
+            except Exception as e:
+                print(f"{Fore.RED}Failed to copy to clipboard: {e}{ColorStyle.RESET_ALL}")
+                
+        elif choice == 'f':
+            filename = input("Enter filename: ").strip()
+            if filename:
+                try:
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        f.write(response)
+                    print(f"{Fore.GREEN}✓ Response saved to {filename}{ColorStyle.RESET_ALL}")
+                except Exception as e:
+                    print(f"{Fore.RED}Failed to save file: {e}{ColorStyle.RESET_ALL}")
+    
+    def save_conversation(self):
+        """Save entire conversation to file"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"glm_conversation_{timestamp}.md"
+        
+        try:
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write("# GLM-4.5 Chat Conversation\n\n")
+                f.write(f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"**Model:** {self.model}\n\n")
+                
+                if self.system_prompt:
+                    f.write("## System Prompt\n\n")
+                    f.write(f"```\n{self.system_prompt}\n```\n\n")
+                
+                f.write("## Conversation\n\n")
+                
+                for msg in self.conversation_history:
+                    if msg['role'] == 'user':
+                        f.write(f"### User\n{msg['content']}\n\n")
+                    elif msg['role'] == 'assistant':
+                        f.write(f"### Assistant\n{msg['content']}\n\n")
+                        
+            print(f"{Fore.GREEN}✓ Conversation saved to {filename}{ColorStyle.RESET_ALL}")
+        except Exception as e:
+            print(f"{Fore.RED}Failed to save conversation: {e}{ColorStyle.RESET_ALL}")
+    
+    def process_command(self, command: str) -> bool:
+        """Process special commands. Returns True if should continue, False to exit"""
+        command = command.strip().lower()
+        
+        if command == '/exit':
+            return False
+            
+        elif command == '/clear':
+            self.conversation_history = []
+            if self.system_prompt:
+                self.conversation_history.append({
+                    "role": "system",
+                    "content": self.system_prompt
+                })
+            print(f"{Fore.GREEN}✓ Conversation history cleared{ColorStyle.RESET_ALL}")
+            
+        elif command == '/system':
+            self.setup_system_prompt()
+            
+        elif command == '/save':
+            self.save_conversation()
+            
+        else:
+            return None  # Not a command
+            
+        return True
+    
+    def chat_turn(self, user_input: str) -> str:
+        """Execute a single chat turn"""
+        # Add user message to history
+        self.conversation_history.append({
+            "role": "user",
+            "content": user_input
+        })
+        
+        try:
+            # Make API call
+            print(f"\n{Fore.GREEN}GLM> {ColorStyle.RESET_ALL}", end='', flush=True)
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=self.conversation_history,
+                stream=True  # Enable streaming
+            )
+            
+            full_response = ""
+            for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    print(content, end='', flush=True)
+                    full_response += content
+                    
+            print()  # New line after response
+            
+            # Add assistant response to history
+            self.conversation_history.append({
+                "role": "assistant",
+                "content": full_response
+            })
+            
+            return full_response
+            
+        except Exception as e:
+            error_msg = f"API Error: {str(e)}"
+            print(f"{Fore.RED}{error_msg}{ColorStyle.RESET_ALL}")
+            # Remove the user message from history since the request failed
+            self.conversation_history.pop()
+            return None
+    
+    def run(self):
+        """Main chat loop"""
+        self.print_banner()
+        self.setup_api_key()
+        self.setup_system_prompt()
+        
+        print(f"\n{Fore.CYAN}Chat started. Press Enter to send, add \\ for multiline.{ColorStyle.RESET_ALL}\n")
+        
+        while True:
+            try:
+                # Get user input
+                user_input = self.get_multiline_input()
+                
+                if user_input is None:
+                    print(f"\n{Fore.YELLOW}Use /exit to quit{ColorStyle.RESET_ALL}")
+                    continue
+                    
+                if not user_input.strip():
+                    continue
+                
+                # Check for commands
+                if user_input.startswith('/'):
+                    result = self.process_command(user_input)
+                    if result is False:
+                        break
+                    elif result is True:
+                        continue
+                
+                # Process chat turn
+                response = self.chat_turn(user_input)
+                
+                if response:
+                    self.save_response(response)
+                    
+            except KeyboardInterrupt:
+                print(f"\n{Fore.YELLOW}Use /exit to quit{ColorStyle.RESET_ALL}")
+                continue
+                
+            except Exception as e:
+                print(f"{Fore.RED}Unexpected error: {e}{ColorStyle.RESET_ALL}")
+                continue
+        
+        print(f"\n{Fore.CYAN}Thank you for using GLM Chat CLI!{ColorStyle.RESET_ALL}")
+
+
+def main():
+    """Main entry point"""
+    try:
+        cli = GLMChatCLI()
+        cli.run()
+    except Exception as e:
+        print(f"{Fore.RED}Fatal error: {e}{ColorStyle.RESET_ALL}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

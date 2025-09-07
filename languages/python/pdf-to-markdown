@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+
+import os
+import re
+import sys
+import pandas as pd
+from PyPDF2 import PdfReader
+from pdfminer.high_level import extract_text_to_fp
+from pdfminer.layout import LAParams
+from io import StringIO
+import tabula
+import markdown
+
+def extract_text_from_pdf(pdf_path):
+    """Estrae il testo da un file PDF usando PDFMiner"""
+    output = StringIO()
+    with open(pdf_path, 'rb') as pdf_file:
+        extract_text_to_fp(pdf_file, output, laparams=LAParams(), 
+                           output_type='text', codec='utf-8')
+    return output.getvalue()
+
+def extract_tables_from_pdf(pdf_path):
+    """Estrae le tabelle da un file PDF usando Tabula"""
+    tables_by_page = {}
+    
+    # Leggi il PDF per ottenere il numero di pagine
+    with open(pdf_path, 'rb') as f:
+        pdf = PdfReader(f)
+        num_pages = len(pdf.pages)
+    
+    # Estrai tabelle da ogni pagina
+    for page in range(1, num_pages + 1):
+        try:
+            page_tables = tabula.read_pdf(pdf_path, pages=page, multiple_tables=True)
+            if page_tables:
+                tables_by_page[page] = page_tables
+        except Exception as e:
+            print(f"Errore nell'estrazione delle tabelle dalla pagina {page}: {e}")
+    
+    return tables_by_page
+
+def table_to_markdown(df):
+    """Converte un DataFrame pandas in una tabella markdown"""
+    markdown_table = []
+    
+    # Intestazioni
+    headers = "| " + " | ".join(str(col) for col in df.columns) + " |"
+    markdown_table.append(headers)
+    
+    # Separatore
+    separator = "| " + " | ".join(["---"] * len(df.columns)) + " |"
+    markdown_table.append(separator)
+    
+    # Righe
+    for _, row in df.iterrows():
+        row_str = "| " + " | ".join(str(cell).replace("\n", "<br>") for cell in row) + " |"
+        markdown_table.append(row_str)
+    
+    return "\n".join(markdown_table)
+
+def pdf_to_markdown(pdf_path, output_path=None):
+    """Converte un PDF in markdown, preservando le tabelle"""
+    if not output_path:
+        output_path = os.path.splitext(pdf_path)[0] + ".md"
+    
+    # Estrai il testo
+    text = extract_text_from_pdf(pdf_path)
+    
+    # Estrai le tabelle
+    tables_by_page = extract_tables_from_pdf(pdf_path)
+    
+    # Suddividi il testo per pagina (approssimativo)
+    # Nota: questo è un approccio semplificato, potrebbe richiedere aggiustamenti
+    pages_text = text.split("\f")
+    
+    # Prepara il markdown finale
+    markdown_content = []
+    
+    for i, page_text in enumerate(pages_text):
+        page_num = i + 1
+        
+        # Aggiungi il testo della pagina
+        markdown_content.append(f"## Pagina {page_num}\n")
+        markdown_content.append(page_text.strip())
+        markdown_content.append("\n")
+        
+        # Aggiungi le tabelle se presenti in questa pagina
+        if page_num in tables_by_page:
+            for j, table in enumerate(tables_by_page[page_num]):
+                if not table.empty:
+                    markdown_content.append(f"\n### Tabella {j+1} (Pagina {page_num})\n")
+                    markdown_content.append(table_to_markdown(table))
+                    markdown_content.append("\n")
+    
+    # Unisci tutto il contenuto e scrivi il file markdown
+    full_markdown = "\n".join(markdown_content)
+    
+    with open(output_path, "w", encoding="utf-8") as md_file:
+        md_file.write(full_markdown)
+    
+    return output_path
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Utilizzo: pdf-to-markdown <percorso_pdf> [percorso_output]")
+        sys.exit(1)
+    
+    pdf_path = sys.argv[1]
+    output_path = sys.argv[2] if len(sys.argv) > 2 else None
+    
+    result_path = pdf_to_markdown(pdf_path, output_path)
+    print(f"Conversione completata. File markdown salvato in: {result_path}")

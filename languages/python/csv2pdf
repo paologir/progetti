@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+
+import pandas as pd
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.pdfgen import canvas
+import argparse
+
+def csv_to_pdf(input_file, title=None, add_page_number=False, font="Helvetica", fontsize=12, page_format="A4"):
+    # Determine page size
+    pagesize = A4
+    if page_format.lower() == "landscape":
+        pagesize = landscape(A4)
+
+    # Step 1: Read the CSV file
+    df = pd.read_csv(input_file)
+
+    # Step 2: Calculate column widths
+    col_widths = [max(df[col].astype(str).map(len).max(), len(col)) for col in df.columns]
+    total_width = sum(col_widths)
+    scale_factor = (pagesize[0] - 100) / total_width  # Adjust for margins
+    col_widths = [int(width * scale_factor) for width in col_widths]
+
+    # Step 3: Initialize the PDF canvas
+    pdf_file_path = input_file.rsplit('.', 1)[0] + '.pdf'
+    c = canvas.Canvas(pdf_file_path, pagesize=pagesize)
+    width, height = pagesize
+
+    # Step 4: Add a title if requested
+    if title:
+        c.setFont(font, 16)
+        c.drawString(50, height - 50, title)  # Adjusted left margin
+
+    # Step 5: Add the CSV data
+    y = height - 100  # Starting y-position for the data
+    row_height = 20  # Height of each row
+
+    # Add column headers
+    c.setFont(f"{font}-Bold", fontsize)  # Use the specified font and size for headers
+    x = 50  # Starting x-position
+    for i, header in enumerate(df.columns):
+        c.drawString(x, y, header)
+        x += col_widths[i]
+
+    y -= row_height
+
+    # Add rows
+    c.setFont(font, fontsize)  # Use the specified font and size for data
+    for index, row in df.iterrows():
+        x = 50  # Reset x-position for each row
+        for i, value in enumerate(row):
+            c.drawString(x, y, str(value))
+            x += col_widths[i]
+        y -= row_height
+        if y < 50:  # Add a new page if needed
+            if add_page_number:
+                c.setFont(font, 10)  # Set font for page number
+                c.drawString(width - 120, 30, f"Page {c._pageNumber}")  # Add page number
+            c.showPage()
+            c.setFont(font, fontsize)  # Reset font for new page
+            y = height - 100
+
+    # Add page number on the last page
+    if add_page_number:
+        c.setFont(font, 10)  # Set font for page number
+        c.drawString(width - 120, 30, f"Page {c._pageNumber}")
+
+    # Step 6: Save the PDF
+    c.save()
+
+    print(f"PDF generated successfully at {pdf_file_path}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Convert CSV to PDF")
+    parser.add_argument("input_file", help="Input CSV file")
+    parser.add_argument("--title", help="Title to add at the top of the PDF")
+    parser.add_argument("--pagenum", action="store_true", help="Add page numbers to the PDF")
+    parser.add_argument("--font", default="Helvetica", help="Font to use for the PDF content")
+    parser.add_argument("--fontsize", type=int, default=12, help="Font size to use for the PDF content")
+    parser.add_argument("--formatopag", default="A4", choices=["A4", "landscape"], help="Page format (A4 or landscape)")
+
+    args = parser.parse_args()
+
+    csv_to_pdf(args.input_file, args.title, args.pagenum, args.font, args.fontsize, args.formatopag)

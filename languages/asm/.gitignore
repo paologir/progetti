@@ -1,0 +1,29 @@
+# Compiled object files
+*.o
+*.obj
+
+# Executable files
+*.exe
+*.out
+a.out
+
+# Listing files
+*.lst
+
+# Debug files
+*.pdb
+*.dSYM/
+
+# Build directories
+build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

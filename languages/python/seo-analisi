@@ -1,0 +1,266 @@
+#!/usr/bin/env python3
+
+import requests
+from bs4 import BeautifulSoup
+from collections import Counter, OrderedDict
+import re
+from urllib.parse import urlparse, urljoin
+import argparse
+import pprint
+import concurrent.futures
+import logging
+from typing import Dict, Any, List, Tuple, Optional
+import csv
+import json
+import sys
+import pyperclip
+
+# Configurazione del logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def is_valid_url(url_string: str) -> bool:
+    """Verifica se una stringa è un URL valido."""
+    try:
+        result = urlparse(url_string)
+        return all([result.scheme, result.netloc])
+    except:
+        return False
+
+def recupera_url(url: str) -> requests.Response:
+    """Recupera il contenuto di un URL."""
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        logging.info(f"URL modificato in: {url}")
+
+    try:
+        response = requests.get(url, timeout=10, headers={'User-Agent': 'AnalisiSEO/1.0'})
+        response.raise_for_status()
+        return response
+    except requests.RequestException as e:
+        logging.error(f"Richiesta fallita per {url}: {str(e)}")
+        raise
+
+def calcola_densita_parola_chiave(testo: str, parola_chiave: str) -> float:
+    """Calcola la densità di una parola chiave nel testo."""
+    parole = re.findall(r'\w+', testo.lower())
+    conteggio_parole = Counter(parole)
+    totale_parole = sum(conteggio_parole.values())
+    return (conteggio_parole[parola_chiave.lower()] / totale_parole) * 100 if totale_parole > 0 else 0
+
+def analizza_link(zuppa: BeautifulSoup, url_base: str) -> Tuple[Dict[str, int], List[str], List[str], List[str]]:
+    """Analizza i link nella pagina e verifica la loro salute."""
+    link_totali = 0
+    link_nofollow = 0
+    link_esterni_list = []
+    link_interni_list = []
+    link_rotti = []
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for link in zuppa.find_all('a', href=True):
+            href = link.get('href')
+            if href:
+                full_url = urljoin(url_base, href)
+                link_totali += 1
+                if 'nofollow' in link.get('rel', []):
+                    link_nofollow += 1
+                if href.startswith(('http://', 'https://')) and urlparse(href).netloc != urlparse(url_base).netloc:
+                    link_esterni_list.append(full_url)
+                elif not href.startswith('mailto:'):
+                    link_interni_list.append(full_url)
+                futures.append(executor.submit(verifica_link, full_url))
+
+        for future in concurrent.futures.as_completed(futures):
+            url_rotto = future.result()
+            if url_rotto and not url_rotto.startswith('mailto:'):
+                link_rotti.append(url_rotto)
+
+    return {
+        'link_totali': link_totali,
+        'link_nofollow': link_nofollow,
+    }, link_esterni_list, link_interni_list, link_rotti
+
+def verifica_link(url: str) -> Optional[str]:
+    """Verifica se un link è attivo."""
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=5, headers={'User-Agent': 'AnalisiSEO/1.0'})
+        if response.status_code != 200:
+            logging.warning(f"Link rotto: {url} - Status Code: {response.status_code}")
+            return url
+        return None
+    except requests.RequestException:
+        logging.warning(f"Link rotto o problema di connessione: {url}")
+        return url
+
+def formatta_analisi_markdown(analisi: OrderedDict) -> str:
+    """Formatta l'analisi SEO come stringa Markdown."""
+    output = "# Analisi SEO\n\n"
+    for chiave, valore in analisi.items():
+        if isinstance(valore, list) and chiave in ["Titolazioni H1", "Titolazioni H2", "Titolazioni H3"]:
+            if valore:
+                output += f"**{chiave}:**\n"
+                for item in valore:
+                    output += f"- {item}\n"
+        elif isinstance(valore, list) and chiave in ["Link esterni", "Link interni", "Link rotti"]:
+            if valore:
+                output += f"**{chiave}:**\n"
+                for item in valore:
+                    output += f"- {item}\n"
+        elif isinstance(valore, dict) and chiave == "Conteggio intestazioni":
+            output += f"**{chiave}:**\n"
+            for sub_chiave, sub_valore in valore.items():
+                output += f"- {sub_chiave}: {sub_valore}\n"
+        elif chiave in ["Lunghezza meta descrizione", "Lunghezza titolo"]:
+            output += f"**{chiave}:** {valore}\n"
+        elif isinstance(valore, str):
+            output += f"**{chiave}:** {valore}\n"
+    return output
+
+def salva_come_markdown(analisi: OrderedDict, nome_file: str):
+    """Salva l'analisi SEO come file Markdown."""
+    try:
+        markdown_output = formatta_analisi_markdown(analisi)
+        with open(nome_file, 'w', encoding='utf-8') as f:
+            f.write(markdown_output)
+        logging.info(f"Analisi SEO salvata come Markdown in {nome_file}")
+    except IOError as e:
+        logging.error(f"Errore durante la scrittura del file Markdown {nome_file}: {e}")
+
+def salva_come_txt(analisi: OrderedDict, nome_file: str):
+    """Salva l'analisi SEO come file di testo."""
+    try:
+        with open(nome_file, 'w', encoding='utf-8') as f:
+            for chiave, valore in analisi.items():
+                if isinstance(valore, list):
+                    f.write(f"{chiave}:\n")
+                    for item in valore:
+                        f.write(f"  - {item}\n")
+                elif isinstance(valore, dict):
+                    f.write(f"{chiave}:\n")
+                    for sub_chiave, sub_valore in valore.items():
+                        f.write(f"  {sub_chiave}: {sub_valore}\n")
+                else:
+                    f.write(f"{chiave}: {valore}\n")
+        logging.info(f"Analisi SEO salvata come testo in {nome_file}")
+    except IOError as e:
+        logging.error(f"Errore durante la scrittura del file di testo {nome_file}: {e}")
+
+def salva_come_clipboard(analisi: OrderedDict):
+    """Salva l'analisi SEO nella clipboard."""
+    markdown_output = formatta_analisi_markdown(analisi)
+    pyperclip.copy(markdown_output)
+    print("Risultato copiato negli appunti!")
+
+def principale(url: str, parola_chiave_focus: str = '') -> OrderedDict:
+    """Esegue un'analisi SEO avanzata sull'URL del sito web fornito."""
+    logging.info(f"Analisi SEO avviata per: {url}")
+    try:
+        risposta = recupera_url(url)
+
+        if risposta.encoding.lower() != 'utf-8':
+            risposta.encoding = risposta.apparent_encoding
+
+        zuppa = BeautifulSoup(risposta.text, "html.parser")
+
+        analisi_seo_data = OrderedDict()
+
+        # Titolo e Meta Description in cima
+        titolo_tag = zuppa.find("title")
+        analisi_seo_data["Titolo"] = titolo_tag.text if titolo_tag else "Nessun titolo trovato"
+        analisi_seo_data["Lunghezza titolo"] = len(analisi_seo_data["Titolo"])
+
+        meta_descrizione_tag = zuppa.find("meta", attrs={"name": "description"})
+        meta_descrizione_content = meta_descrizione_tag.get("content", "")
+        analisi_seo_data["Meta descrizione"] = meta_descrizione_content
+        analisi_seo_data["Lunghezza meta descrizione"] = len(meta_descrizione_content)
+
+        # Intestazioni
+        analisi_seo_data["Titolazioni H1"] = [tag.text.strip() for tag in zuppa.find_all('h1')]
+        analisi_seo_data["Titolazioni H2"] = [tag.text.strip() for tag in zuppa.find_all('h2')]
+        analisi_seo_data["Titolazioni H3"] = [tag.text.strip() for tag in zuppa.find_all('h3')]
+        analisi_seo_data["Conteggio intestazioni"] = {f"H{i}": len(zuppa.find_all(f"h{i}")) for i in range(1, 7)}
+
+        # Altre informazioni
+        meta_robots_tag = zuppa.find('meta', attrs={'name': 'robots'})
+        analisi_seo_data['Meta robots'] = meta_robots_tag.get('content', 'Nessun meta tag robots') if meta_robots_tag else 'Nessun meta tag robots'
+
+        link_canonico_tag = zuppa.find('link', rel='canonical')
+        analisi_seo_data['Link canonico'] = link_canonico_tag.get('href', 'Nessun link canonico') if link_canonico_tag else 'Nessun link canonico'
+
+        contenuto_testuale = zuppa.get_text()
+        analisi_seo_data['Rapporto testo/HTML'] = f"{(len(contenuto_testuale) / len(risposta.text)) * 100:.2f}%"
+        if parola_chiave_focus:
+            analisi_seo_data['Densità parola chiave'] = f"{calcola_densita_parola_chiave(contenuto_testuale, parola_chiave_focus):.2f}%"
+        else:
+            analisi_seo_data['Densità parola chiave'] = "Non calcolata (nessuna parola chiave fornita)"
+
+        viewport_tag = zuppa.find('meta', attrs={'name': 'viewport'})
+        analisi_seo_data['Compatibile mobile'] = 'Sì' if viewport_tag else 'No'
+
+        # Analisi dei link
+        link_counts, link_esterni, link_interni, link_rotti = analizza_link(zuppa, url)
+        analisi_seo_data.update(link_counts)
+        analisi_seo_data['Link esterni'] = link_esterni
+        analisi_seo_data['Link interni'] = link_interni
+        analisi_seo_data['Link rotti'] = link_rotti
+
+        logging.info(f"Analisi SEO completata per: {url}")
+        return analisi_seo_data
+
+    except requests.RequestException as e:
+        logging.error(f"Richiesta fallita durante l'analisi di {url}: {str(e)}")
+        return OrderedDict({"Errore": f"Richiesta fallita: {str(e)}"})
+    except Exception as e:
+        logging.error(f"Si è verificato un errore imprevisto durante l'analisi di {url}: {str(e)}")
+        return OrderedDict({"Errore": f"Si è verificato un errore imprevisto: {str(e)}"})
+
+def chiedi_salvataggio_clipboard(analisi: OrderedDict):
+    """Chiede all'utente se vuole salvare il risultato nella clipboard."""
+    while True:
+        risposta = input("Vuoi salvare il risultato nella clipboard? (s/n): ").lower()
+        if risposta in ['s', 'n']:
+            break
+        print("Risposta non valida. Inserisci 's' o 'n'.")
+
+    if risposta == 's':
+        salva_come_clipboard(analisi)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Esegue un'analisi SEO avanzata su un dato URL di un sito web.")
+    parser.add_argument("url", nargs='?', help="L'URL del sito web da analizzare.")
+    parser.add_argument("--parola_chiave", help="La parola chiave da analizzare per la densità (opzionale).")
+    parser.add_argument("--output", choices=['console', 'markdown', 'csv', 'txt', 'clipboard'], default='console', help="Formato di output (predefinito: console)")
+    parser.add_argument("--nome_file", help="Nome del file di output (richiesto per markdown, csv e txt)")
+    args = parser.parse_args()
+
+    if not args.url:
+        print("Errore: Si prega di fornire un URL da analizzare.")
+        sys.exit(1)
+
+    if not args.url.startswith(('http://', 'https://')):
+        args.url = 'https://' + args.url
+        logging.info(f"URL modificato in: {args.url}")
+
+    analisi = principale(args.url, args.parola_chiave)
+
+    if args.output == 'console':
+        print(formatta_analisi_markdown(analisi))
+    elif args.output == 'markdown':
+        if not args.nome_file:
+            print("Errore: Specificare un nome file per l'output Markdown")
+        else:
+            salva_come_markdown(analisi, args.nome_file)
+    elif args.output == 'csv':
+        if not args.nome_file:
+            print("Errore: Specificare un nome file per l'output CSV")
+        else:
+            salva_come_csv(analisi, args.nome_file)
+    elif args.output == 'txt':
+        if not args.nome_file:
+            print("Errore: Specificare un nome file per l'output TXT")
+        else:
+            salva_come_txt(analisi, args.nome_file)
+    elif args.output == 'clipboard':
+        salva_come_clipboard(analisi)
+
+    chiedi_salvataggio_clipboard(analisi)

@@ -1,0 +1,503 @@
+{
+  "total_queries": 15,
+  "mean_reciprocal_rank": 0.5666666666666667,
+  "mean_average_precision": 1.6966402116402117,
+  "mean_precision_at_k": {
+    "1": 0.5333333333333333,
+    "3": 0.2,
+    "5": 0.11999999999999998,
+    "10": 0.05999999999999999
+  },
+  "mean_recall_at_k": {
+    "1": 0.5333333333333333,
+    "3": 0.5555555555555556,
+    "5": 0.5555555555555556,
+    "10": 0.5555555555555556
+  },
+  "detailed_results": [
+    {
+      "query": "Quali sono i concorrenti di Didonè Comacchio?",
+      "expected_files": [
+        "Didonè Comacchio/concorrenti.md"
+      ],
+      "retrieved_files": [
+        "Didonè Comacchio/concorrenti.md",
+        "Didonè Comacchio/corpus.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/dati.md",
+        "Didonè Comacchio/proposta.md",
+        "Didonè Comacchio/analisi preliminare.md"
+      ],
+      "reciprocal_rank": 1.0,
+      "average_precision": 1.0,
+      "precision_at_k": {
+        "1": 1.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0,
+        "10": 1.0
+      }
+    },
+    {
+      "query": "Che tipo di azienda è FIS Group?",
+      "expected_files": [
+        "Fis/corpus.md"
+      ],
+      "retrieved_files": [
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md"
+      ],
+      "reciprocal_rank": 1.0,
+      "average_precision": 10.0,
+      "precision_at_k": {
+        "1": 1.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0,
+        "10": 1.0
+      }
+    },
+    {
+      "query": "Informazioni generali su Maffeis Engineering",
+      "expected_files": [
+        "Maffeis Engineering/corpus.md"
+      ],
+      "retrieved_files": [
+        "Maffeis Engineering/corpus.md",
+        "Maffeis Engineering/10 dicembre 2024.md",
+        "Maffeis Engineering/brochure.md",
+        "Maffeis Engineering/proposta Gemini.md",
+        "Maffeis Engineering/brochure.md",
+        "Maffeis Engineering/corpus.md",
+        "Maffeis Engineering/corpus.md",
+        "Maffeis Engineering/prompt.md",
+        "Maffeis Engineering/brochure.md",
+        "Maffeis Engineering/proposta Claude iniziale.md"
+      ],
+      "reciprocal_rank": 1.0,
+      "average_precision": 1.7619047619047619,
+      "precision_at_k": {
+        "1": 1.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0,
+        "10": 1.0
+      }
+    },
+    {
+      "query": "Dati di accesso per Progeo",
+      "expected_files": [
+        "Progeo/dati.md"
+      ],
+      "retrieved_files": [
+        "Progeo/google ads.md",
+        "Progeo/personas.md",
+        "Progeo/14 giugno 2024.md",
+        "Progeo/personas.md",
+        "Progeo/personas.md",
+        "Progeo/concorrenti.md",
+        "Progeo/siti.md",
+        "Progeo/strategia.md",
+        "Progeo/personas.md",
+        "Progeo/16 marzo 2025.md"
+      ],
+      "reciprocal_rank": 0.0,
+      "average_precision": 0.0,
+      "precision_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      },
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      }
+    },
+    {
+      "query": "Quali sono i competitor di Maspe?",
+      "expected_files": [
+        "Maspe/concorrenti.md"
+      ],
+      "retrieved_files": [
+        "Maspe/ecopiedra.es.md",
+        "Maspe/report competitori.md",
+        "Maspe/2025.md",
+        "Maspe/2025.md",
+        "Maspe/2025.md",
+        "Maspe/ecopiedra.es.md",
+        "Maspe/2025.md",
+        "Maspe/2025.md",
+        "Maspe/2025.md",
+        "Maspe/testi.md"
+      ],
+      "reciprocal_rank": 0.0,
+      "average_precision": 0.0,
+      "precision_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      },
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      }
+    },
+    {
+      "query": "Account e credenziali di Seit",
+      "expected_files": [
+        "Seit/dati.md"
+      ],
+      "retrieved_files": [
+        "Maspe/Edil de Toni.md",
+        "Maspe/Edil de Toni.md",
+        "Conflavoro/25 gennaio 2024.md",
+        "unknown/06-03-2024.md",
+        "Seit/persona.md",
+        "OLD/sito.md",
+        "Seit/corpus.md",
+        "OLD/persona.md",
+        "OLD/parole chiave.md",
+        "OLD/corpus.md"
+      ],
+      "reciprocal_rank": 0.0,
+      "average_precision": 0.0,
+      "precision_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      },
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      }
+    },
+    {
+      "query": "Come funziona l'azienda ASAS?",
+      "expected_files": [
+        "ASAS/corpus.md"
+      ],
+      "retrieved_files": [
+        "ASAS/dati.md",
+        "unknown/11-04-2025.md",
+        "ASAS/atti e memoria.md",
+        "unknown/Corso ML Andrew NG - sintesi week 1.md",
+        "unknown/06-03-2025.md",
+        "Conflavoro/kwds GSC.md",
+        "unknown/Metodo Montecarlo.md",
+        "unknown/10-04-2025.md",
+        "unknown/19. Come prevedere il risultato di un evento. La Regressione Logistica.md",
+        "unknown/04-06-2025.md"
+      ],
+      "reciprocal_rank": 0.0,
+      "average_precision": 0.0,
+      "precision_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      },
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      }
+    },
+    {
+      "query": "Dettagli su Change Italia",
+      "expected_files": [
+        "Change Italia/corpus.md"
+      ],
+      "retrieved_files": [
+        "unknown/05-12-2024.md",
+        "Change Italia/dati.md",
+        "XChange Italia/dati.md",
+        "unknown/18-12-2024.md",
+        "unknown/08-01-2025.md",
+        "unknown/11-10-2024.md",
+        "Maspe/attività.md",
+        "Prospects/Change Italia.md",
+        "Change Italia/burocrazia.md",
+        "unknown/10-01-2025.md"
+      ],
+      "reciprocal_rank": 0.0,
+      "average_precision": 0.0,
+      "precision_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      },
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      }
+    },
+    {
+      "query": "Concorrenti",
+      "expected_files": [
+        "Didonè Comacchio/concorrenti.md",
+        "Maspe/concorrenti.md",
+        "Maffeis Engineering/concorrenti.md"
+      ],
+      "retrieved_files": [
+        "Progeo/concorrenti.md",
+        "Didonè Comacchio/concorrenti.md",
+        "Progeo/concorrenti.md",
+        "Prospects/informazioni.md",
+        "Maspe/ecopiedra.es.md",
+        "Progeo/2024 - internazionalizzazione.md",
+        "Maffeis Engineering/corpus.md",
+        "Progeo/2024 - internazionalizzazione.md",
+        "Maspe/ecopiedra.es.md",
+        "Didonè Comacchio/proposta.md"
+      ],
+      "reciprocal_rank": 0.5,
+      "average_precision": 0.16666666666666666,
+      "precision_at_k": {
+        "1": 0.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.3333333333333333,
+        "5": 0.3333333333333333,
+        "10": 0.3333333333333333
+      }
+    },
+    {
+      "query": "Informazioni sui dati aziendali",
+      "expected_files": [
+        "Progeo/dati.md",
+        "Seit/dati.md",
+        "Maffeis Engineering/dati.md"
+      ],
+      "retrieved_files": [
+        "OLD/strategia.md",
+        "OLD/parole chiave.md",
+        "Maspe/aprile 2025.md",
+        "unknown/Registro dei Trattamenti.md",
+        "Movinox/proposte.md",
+        "OLD/strategia.md",
+        "OLD/intervento.md",
+        "unknown/Report.md",
+        "Maspe/ecopiedra.es.md",
+        "OLD/intervento.md"
+      ],
+      "reciprocal_rank": 0.0,
+      "average_precision": 0.0,
+      "precision_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      },
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "10": 0.0
+      }
+    },
+    {
+      "query": "Chi è Francesca Endrizzi?",
+      "expected_files": [
+        "Didonè Comacchio/concorrenti.md"
+      ],
+      "retrieved_files": [
+        "Didonè Comacchio/concorrenti.md",
+        "Cooperativa Chiara/materiali.md",
+        "unknown/15-11-2024.md",
+        "unknown/Cos'├Г┬и la bont├Г┬а di adattamento_.md",
+        "unknown/Cos'├Г┬и la bont├Г┬а di adattamento_.md",
+        "Conflavoro/sitemap.md",
+        "unknown/Il Pensatore Inquieto (Dostoevskij).md",
+        "unknown/Contromanifesto per una Vigilanza Terrestre.md",
+        "Conflavoro/sitemap.md",
+        "unknown/Contromanifesto per una Vigilanza Terrestre.md"
+      ],
+      "reciprocal_rank": 1.0,
+      "average_precision": 1.0,
+      "precision_at_k": {
+        "1": 1.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0,
+        "10": 1.0
+      }
+    },
+    {
+      "query": "MTMA Architetti dove si trova?",
+      "expected_files": [
+        "Didonè Comacchio/concorrenti.md"
+      ],
+      "retrieved_files": [
+        "Didonè Comacchio/concorrenti.md",
+        "unknown/26-11-2024.md",
+        "Aiguille Noire/TMB.md",
+        "Maffeis Engineering/16 dicembre 2024.md",
+        "Aiguille Noire/TMB.md",
+        "unknown/Git.md",
+        "unknown/11-06-2024.md",
+        "unknown/linux.md",
+        "unknown/8. La distribuzione normale.md",
+        "Espa/testi.md"
+      ],
+      "reciprocal_rank": 1.0,
+      "average_precision": 1.0,
+      "precision_at_k": {
+        "1": 1.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0,
+        "10": 1.0
+      }
+    },
+    {
+      "query": "Casa nf firmato da didonè",
+      "expected_files": [
+        "Didonè Comacchio/analisi preliminare.md"
+      ],
+      "retrieved_files": [
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/corpus.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md",
+        "Didonè Comacchio/analisi preliminare.md"
+      ],
+      "reciprocal_rank": 1.0,
+      "average_precision": 8.521031746031746,
+      "precision_at_k": {
+        "1": 1.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0,
+        "10": 1.0
+      }
+    },
+    {
+      "query": "Proposte commerciali FIS",
+      "expected_files": [
+        "Fis/proposta.md"
+      ],
+      "retrieved_files": [
+        "Fis/proposta.md",
+        "Fis/risultati.md",
+        "Fis/corpus.md",
+        "Fis/prompt.md",
+        "Fis/prompt.md",
+        "Fis/prompt.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "unknown/03-12-2025.md",
+        "unknown/28-05-2025.md"
+      ],
+      "reciprocal_rank": 1.0,
+      "average_precision": 1.0,
+      "precision_at_k": {
+        "1": 1.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0,
+        "10": 1.0
+      }
+    },
+    {
+      "query": "Quanto costa la proposta per FIS Group?",
+      "expected_files": [
+        "Fis/proposta.md"
+      ],
+      "retrieved_files": [
+        "Fis/proposta.md",
+        "Fis/prompt.md",
+        "Fis/prompt.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/prompt.md",
+        "Fis/corpus.md",
+        "Fis/corpus.md",
+        "Fis/dati.md"
+      ],
+      "reciprocal_rank": 1.0,
+      "average_precision": 1.0,
+      "precision_at_k": {
+        "1": 1.0,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0,
+        "10": 1.0
+      }
+    }
+  ]
+}

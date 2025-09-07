@@ -1,0 +1,10 @@
+# Dipendenze minime per MVP
+python-dotenv
+langchain
+langchain-community
+langchain-mistralai
+langchain-huggingface
+faiss-cpu
+sentence-transformers
+pypdf
+tiktoken

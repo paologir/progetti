@@ -1,0 +1,1142 @@
+/*-------------------------------------------------------------------------------------
+Theme Name: Snowlake
+Theme URI:	https://demos.elemisthemes.com/snowlake/start.html
+Version:	1.0.2
+Author:		elemis
+01. RESET
+02. GENERAL
+03. NAVBAR
+04. STICKY HEADER
+05. MEGA MENU
+06. HAMBURGER MENU ICON
+07. OFFCANVAS
+08. SEARCH
+09. CART
+10. BUTTON
+11. BOX
+12. WRAPPERS
+13. IMAGE BACKGROUND WRAPPER
+14. IMAGE BLOCK WRAPPER
+15. VIDEO BACKGROUND WRAPPER
+16. SHADOW
+17. ROUNDED CORNERS
+18. CIRCLE
+19. DIVIVDER
+20. DROPCAP
+21. BADGE
+22. ALERT
+23. MODAL
+24. BLOCKQUOTE
+25. LISTS
+26. SERVICES
+27. CLIENTS
+28. FIGURE
+29. OVERLAY
+30. TILES
+31. BLOG
+32. WIDGETS
+33. PAGINATION
+34. BREADCRUMBS
+35. COMMENTS
+36. DIAL
+37. PROGRESS
+38. COUNTER
+39. COUNTDOWN
+40. TABS
+41. ACCORDION / COLLAPSE
+42. TABLES
+43. PRICING
+44. SHOP
+45. RATING
+46. TOOLTIP
+47. POPOVER
+48. COLUMNS & GUTTERS
+49. SLIDER REVOLUTION
+50. OWL CAROUSEL
+51. ISOTOPE
+52. PLYR
+53. SOCIAL ICONS
+54. FORMS
+55. LIGHTGALLERY
+56. SCROLL ANIMATIONS
+57. LOADING
+58. FONT ICONS LIST
+59. LINEAR ICONS LIST
+60. SPLIT LAYOUT
+61. COLORS
+62. INVERSE TEXT
+63. BOX LAYOUT
+64. RESPONSIVE
+-------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	01. RESET
+/*-----------------------------------------------------------------------------------*/
+*,
+*:before,
+*:after {
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+iframe {
+    border: none
+}
+::-moz-selection {
+    background: rgba(var(--rgb-default), 0.7);
+    color: var(--color-white);
+}
+::selection {
+    background: rgba(var(--rgb-default), 0.7);
+    color: var(--color-white);
+}
+br {
+    line-height: 0;
+}
+button:focus {
+    outline: none !important;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	GOOGLE PARTNER BADGE
+/*-----------------------------------------------------------------------------------*/
+.google-partner-badge {
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+.google-partner-badge img:hover {
+    transform: scale(1.05);
+}
+
+.google-partner-badge a {
+    display: inline-block;
+    text-decoration: none;
+}
+
+/*-----------------------------------------------------------------------------------*/
+/*	02. GENERAL
+/*-----------------------------------------------------------------------------------*/
+html {
+    font-size: 20px;
+}
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Jost', sans-serif;
+    color: #606060;
+    font-size: 0.8rem;
+    background: #f9fafb;
+    overflow-x: hidden;
+    position: relative;
+}
+.container {
+    padding-right: 0;
+    padding-left: 0;
+}
+body,
+li,
+address {
+    line-height: 1.4rem;
+}
+
+button,
+select {
+    font-family: inherit;
+    font-weight: normal;
+    color: inherit;
+}
+strong {
+    font-weight: bold;
+}
+p {
+    margin: 0 0 1rem
+}
+a {
+    color: var(--color-default);
+    -webkit-transition: all 200ms ease-in-out;
+    -o-transition: all 200ms ease-in-out;
+    transition: all 200ms ease-in-out;
+}
+
+a.nocolor {
+    color: inherit;
+}
+a:hover,
+a:focus {
+    text-decoration: none;
+    color: var(--color-default);
+}
+.font-weight-300 {
+    font-weight: 300;
+}
+.font-weight-500 {
+    font-weight: 500;
+}
+strong {
+    font-weight: 500;
+}
+
+h2,
+h3,
+h5 {
+    margin-top: 0;
+    color: #404040;
+    font-weight: 500;
+    letter-spacing: normal;
+    margin-bottom: 0.8rem;
+}
+h2,
+.h2 {
+    font-size: 1.3rem;
+    line-height: 1.6rem;
+}
+h3,
+.h3 {
+    font-size: 1.2rem;
+    line-height: 1.5rem;
+}
+h5,
+.h5 {
+    font-size: 1rem;
+    line-height: 1.3rem;
+    margin-bottom: 0.6rem;
+}
+.widget-title {
+    font-size: 1rem;
+    line-height: 1.3rem;
+}
+.title-color {
+    font-size: 0.8rem;
+    line-height: 1.1rem;
+    margin-bottom: 1.05rem;
+    text-transform: uppercase;
+}
+.display-3 {
+    font-size: 1.6rem;
+    line-height: 2.2rem;
+    font-weight: normal;
+}
+.inner {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+}
+footer .inner {
+    padding-bottom: 5rem;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	03. NAVBAR
+/*-----------------------------------------------------------------------------------*/
+.navbar {
+    z-index: 1008;
+    width: 100%;
+    padding: 0;
+}
+.navbar-nav,
+.navbar-nav * {
+    line-height: 1;
+}
+.navbar .container {
+    position: relative;
+}
+.navbar.absolute {
+    position: absolute;
+}
+.navbar .navbar-brand {
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+}
+.navbar .navbar-brand a {
+    color: #303030;
+}
+.navbar-brand img {
+    -webkit-transition: all 0.3s;
+    -o-transition: all 0.3s;
+    transition: all 0.3s;
+    -webkit-transform: translateZ();
+    height: auto;
+    width: auto;
+    max-width: none;
+}
+@media all and (-webkit-min-device-pixel-ratio: 0) and (min-resolution: .001dpcm) {
+    .navbar-brand img {
+        image-rendering: -webkit-optimize-contrast;
+    }
+}
+.navbar-nav .nav-link {
+    color: #303030;
+}
+.navbar-nav .nav-link {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.nav-uppercase .navbar-nav .nav-link {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.dropdown-toggle::after {
+    display: none;
+}
+.navbar-other .nav-item a:not(.btn),
+.navbar-other .nav-item button {
+    color: #303030;
+    cursor: pointer;
+    transition: all 200ms ease-in-out;
+}
+.navbar-other .nav-item+.nav-item {
+    padding-left: 0.8rem;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	04. STICKY HEADER
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	05. MEGA MENU
+/*-----------------------------------------------------------------------------------*/
+.navbar-nav {
+    position: static !important;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	06. HAMBURGER MENU ICON
+/*-----------------------------------------------------------------------------------*/
+button.plain {
+    cursor: pointer;
+    transition: transform .2s ease-in-out;
+    -moz-transition: transform .2s ease-in-out;
+    -webkit-transition: transform .2s ease-in-out;
+    vertical-align: middle;
+    border: 0 none;
+    background: none;
+    padding: 0;
+    margin: 0;
+}
+button.plain::-moz-focus-inner {
+    padding: 0;
+    border: 0 none;
+}
+button.plain:focus {
+    outline: 0;
+}
+button.hamburger {
+    display: inline-block;
+    width: 24px;
+    height: 22px;
+    padding: 1px 0 0 0;
+}
+button.hamburger:before,
+button.hamburger:after {
+    content: "";
+}
+button.hamburger:before,
+button.hamburger span,
+button.hamburger:after {
+    display: block;
+    width: 100%;
+    height: 3px;
+    margin: 0 0 5px;
+    transition: transform .2s ease-in-out;
+    -moz-transition: transform .2s ease-in-out;
+    -webkit-transition: transform .2s ease-in-out;
+    background: #303030;
+}
+.inverse-text:not(.fixed) button.hamburger:before,
+.inverse-text:not(.fixed) button.hamburger span,
+.inverse-text:not(.fixed) button.hamburger:after {
+    background: var(--color-white);
+}
+/*-----------------------------------------------------------------------------------*/
+/*	07. OFFCANVAS
+/*-----------------------------------------------------------------------------------*/
+.offcanvas-info {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: -300px;
+    width: 300px;
+    padding-top: 3rem;
+    padding-right: 1.5rem;
+    padding-left: 1.5rem;
+    overflow-y: auto;
+    visibility: hidden;
+    background: #1e2228;
+    transition-timing-function: ease-in-out;
+    transition-duration: .3s;
+    transition-property: right, visibility;
+    z-index: 1041;
+    align-items: start;
+    -moz-background-clip: padding;
+    -webkit-background-clip: padding;
+    background-clip: padding-box;
+}
+.offcanvas-close {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.8rem;
+    cursor: pointer;
+    color: var(--color-white);
+    font-size: 1.2rem;
+    transition: all 200ms ease-in-out !important;
+}
+.offcanvas-nav-close {
+    left: auto;
+    right: 0.5rem;
+}
+.offcanvas-header {
+    padding: 3rem 0 2rem;
+}
+.offcanvas-header img {
+    max-width: 100%;
+    height: auto;
+}
+.offcanvas-info .widget {
+    margin-bottom: 2rem;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	08. SEARCH
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	09. CART
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	10. BUTTON
+/*-----------------------------------------------------------------------------------*/
+.btn {
+    color: var(--color-white);
+    background: var(--color-default);
+    border: 0;
+    margin-bottom: 0.5rem;
+    margin-right: 0.25rem;
+    padding: 0.9rem 1.3rem 0.8rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.025rem;
+    text-transform: uppercase;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 1.5rem;
+    text-shadow: none;
+    -webkit-transition: all 300ms ease-in-out;
+    -o-transition: all 300ms ease-in-out;
+    transition: all 300ms ease-in-out;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    display: inline-block;
+}
+.btn:focus {
+    color: var(--color-white);
+    box-shadow: inherit;
+}
+.btn:hover,
+.btn:active {
+    color: var(--color-white);
+    box-shadow: var(--btn-hover-default);
+}
+.text-center .btn {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+}
+.btn-l {
+    padding: 1.05rem 1.5rem 1rem;
+    font-size: 0.7rem;
+}
+.btn.btn-default {
+    background: var(--color-default)
+}
+/*-----------------------------------------------------------------------------------*/
+/*	11. BOX
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	12. WRAPPERS
+/*-----------------------------------------------------------------------------------*/
+.white-wrapper {
+    background-color: #fff !important;
+}
+/*-----------------------------------------------------------------------------------*/
+/* 	13. IMAGE BACKGROUND WRAPPER
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	14. IMAGE BLOCK WRAPPER
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	15. VIDEO BACKGROUND WRAPPER
+/*-----------------------------------------------------------------------------------*/
+video::-webkit-media-controls {
+    display: none !important
+}
+/*-----------------------------------------------------------------------------------*/
+/*	16. SHADOW
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	17. ROUNDED CORNERS
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	18. CIRCLE
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	19. DIVIVDER
+/*-----------------------------------------------------------------------------------*/
+hr {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid rgba(var(--rgb-black), 0.1);
+    padding-top: 3.5rem;
+    margin-bottom: 3.5rem;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	20. DROPCAP
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/* 	21. BADGE
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/* 	22. ALERT
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/* 	23. MODAL
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/* 	24. BLOCKQUOTE
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	25. LISTS
+/*-----------------------------------------------------------------------------------*/
+ul {
+    padding-left: 15px;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	26. SERVICES
+/*-----------------------------------------------------------------------------------*/
+.icon-blob {
+    width: 4rem;
+    height: 4rem;
+    display: table;
+    position: relative;
+    z-index: 1;
+}
+.icon-blob:after {
+    font-family: 'Snowlake' !important;
+    content: "\0041";
+    font-size: 4rem;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+.icon-blob span,
+.icon-blob h3,
+.icon-blob p {
+    font-family: 'Jost', sans-serif !important;
+}
+.icon-blob span {
+    font-weight: 500;
+}
+.text-center .icon-blob {
+    margin: 0 auto;
+}
+.icon-blob i {
+    display: table-cell;
+    text-align: center;
+    margin: 0 auto;
+    vertical-align: middle;
+    font-size: 1.6rem;
+}
+.icon-blob .step {
+    position: absolute;
+    bottom: -0.15rem;
+    left: 0.55rem;
+    font-family: 'Jost', sans-serif !important;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 100%;
+    font-size: 0.55rem;
+    line-height: normal;
+    font-weight: 500;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    color: var(--color-white);
+}
+/*-----------------------------------------------------------------------------------*/
+/* 	27. CLIENTS
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	28. FIGURE
+/*-----------------------------------------------------------------------------------*/
+figure {
+    margin: 0;
+    padding: 0;
+}
+figure img {
+    max-width: 100%
+}
+/*-----------------------------------------------------------------------------------*/
+/*	29. OVERLAY
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	30. TILES
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	31. BLOG
+/*-----------------------------------------------------------------------------------*/
+.meta {
+    margin-bottom: 1rem;
+    font-size: 0.65rem;
+    line-height: 1.05rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+.meta,
+.meta a {
+    color: #999;
+}
+
+.meta a:hover {
+    color: #606060;
+}
+.meta span+span:before {
+    content: "";
+    display: inline-block;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    margin: 0 0.6rem 0 0.6rem;
+    vertical-align: 3px;
+    background: rgba(48, 48, 48, 0.35);
+}
+.meta span i {
+    font-size: 0.75rem;
+    font-weight: normal;
+    margin-right: 0.2rem;
+    vertical-align: -2px;
+}
+/*-----------------------------------------------------------------------------------*/
+/* 	32. WIDGETS
+/*-----------------------------------------------------------------------------------*/
+footer [class*="col-"] .widget {
+    margin-top: 30px
+}
+footer [class*="col-"] .widget:first-child {
+    margin-top: 0
+}
+footer:not(.blockquote-footer) a {
+    color: #606060;
+}
+footer .meta a {
+    color: #999;
+}
+footer:not(.blockquote-footer) a:hover {
+    color: var(--color-default);
+}
+footer a.btn,
+footer a.btn:hover {
+    color: var(--color-white);
+}
+footer.inverse-text:not(.blockquote-footer) * {
+    color: #cacaca;
+}
+footer.inverse-text .meta,
+footer.inverse-text .meta *,
+footer.inverse-text .meta a {
+    color: #aaa;
+}
+footer.inverse-text .meta a:hover {
+    color: var(--color-white);
+}
+/*-----------------------------------------------------------------------------------*/
+/*	33. PAGINATION
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	34. BREADCRUMBS
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	35. COMMENTS
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	36. DIAL
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	37. PROGRESS
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	38. COUNTER
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	39. COUNTDOWN
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	40. TABS
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	41. ACCORDION / COLLAPSE
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/* 	42. TABLES
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/* 	43. PRICING
+/*-----------------------------------------------------------------------------------*/
+@keyframes priceFade {
+    0% {
+        opacity: 1;
+        -webkit-transform: translateY(0);
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        -webkit-transform: translateY(80%);
+        transform: translateY(80%);
+    }
+}
+@-webkit-keyframes priceFade {
+    0% {
+        opacity: 1;
+        -webkit-transform: translateY(0);
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        -webkit-transform: translateY(80%);
+        transform: translateY(80%);
+    }
+}
+@keyframes priceShow {
+    0% {
+        opacity: 0;
+        -webkit-transform: translateY(-80%);
+        transform: translateY(-80%);
+    }
+    100% {
+        opacity: 1;
+        -webkit-transform: translateY(0);
+        transform: translateY(0);
+    }
+}
+@-webkit-keyframes priceShow {
+    0% {
+        opacity: 0;
+        -webkit-transform: translateY(-80%);
+        transform: translateY(-80%);
+    }
+    100% {
+        opacity: 1;
+        -webkit-transform: translateY(0);
+        transform: translateY(0);
+    }
+}
+/*-----------------------------------------------------------------------------------*/
+/*	44. SHOP
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	45. RATING
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	46. TOOLTIP
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	47. POPOVER
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	48. COLUMNS & GUTTERS
+/*-----------------------------------------------------------------------------------*/
+.gutter-60>[class*="col-"] {
+    padding-right: 30px;
+    padding-left: 30px;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	49. SLIDER REVOLUTION
+/*-----------------------------------------------------------------------------------*/
+.rev_slider_wrapper {
+    left: 0px;
+    width: 100%;
+    position: relative;
+}
+.tp-caption.btn {
+    transition: box-shadow 300ms ease-in-out !important;
+    letter-spacing: 0.025rem !important;
+}
+.tp-caption img {
+    transform: translateZ(0px);
+}
+/*-----------------------------------------------------------------------------------*/
+/* 	50. OWL CAROUSEL
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	51. ISOTOPE
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	52. PLYR
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	53. SOCIAL ICONS
+/*-----------------------------------------------------------------------------------*/
+.social {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.social i {
+    vertical-align: -2px;
+}
+.social,
+.social.social-s {
+    font-size: 1rem;
+    line-height: 2rem;
+}
+.social li {
+    display: inline-block;
+    margin: 0 0.75rem 0 0;
+}
+.text-center .social li,
+.social.text-center li {
+    margin: 0 0.5rem
+}
+.social li a {
+    color: inherit;
+    transition: all 200ms ease-in-out;
+}
+.social li a i {
+    opacity: 1;
+    transition: all 200ms ease-in-out;
+}
+
+.social li a:hover i {
+    opacity: 0.8;
+    transition: all 200ms ease-in-out;
+}
+.social-mute a i {
+    color: #404040 !important;
+}
+.inverse-text .social-mute a i {
+    color: var(--color-white) !important;
+}
+.social .jam[class*="facebook"] {
+    color: #4470cf;
+}
+.social .jam[class*="google"] {
+    color: #4081ec;
+}
+.social .jam[class*="instagram"] {
+    color: #d53581;
+}
+.social .jam[class*="line"] {
+    color: #0fab10;
+}
+.social .jam[class*="linkedin"] {
+    color: #3393c1;
+}
+.social .jam[class*="medium"] {
+    color: #00c364;
+}
+.social .jam[class*="opera"] {
+    color: #e33737;
+}
+.social .jam[class*="twitter"] {
+    color: #5daed5;
+}
+.social .jam[class*="vimeo"] {
+    color: #099fc7;
+}
+.social .jam[class*="youtube"] {
+    color: #c8312b;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	54. FORMS
+/*-----------------------------------------------------------------------------------*/
+select {
+    -webkit-appearance: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    width: 100%;
+    font-weight: normal;
+}
+select {
+    display: inline-block;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    font-weight: inherit;
+    height: 2.5rem;
+    line-height: 2.5rem;
+    padding: 0 1rem;
+    font-size: 0.8rem;
+    color: #606060;
+    background: rgba(var(--rgb-black), 0.05);
+    border: 0;
+    border-radius: 1.25rem;
+    resize: none;
+    vertical-align: middle;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    -webkit-transition: all 200ms ease-in-out;
+    -o-transition: all 200ms ease-in-out;
+    transition: all 200ms ease-in-out;
+}
+
+select {
+    -moz-appearance: none
+}
+@-moz-document url-prefix() {
+    select {
+        text-shadow: 0 0 0 transparent;
+    }
+}
+/*-----------------------------------------------------------------------------------*/
+/*	55. LIGHTGALLERY
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	56. SCROLL ANIMATIONS
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	57. LOADING
+/*-----------------------------------------------------------------------------------*/
+@keyframes loader-scale {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+/*-----------------------------------------------------------------------------------*/
+/*	58. FONT ICONS LIST
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	59. LINEAR ICONS LIST
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	60. SPLIT LAYOUT
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/* 	61. COLORS
+/*-----------------------------------------------------------------------------------*/
+.color-gray {
+    color: var(--color-gray) !important
+}
+.color-dark {
+    color: var(--color-dark) !important
+}
+.color-yellow {
+    color: var(--color-yellow) !important
+}
+.color-green {
+    color: var(--color-green) !important
+}
+.color-teal {
+    color: var(--color-teal) !important
+}
+.color-blue {
+    color: var(--color-blue) !important
+}
+.color-purple {
+    color: var(--color-purple) !important
+}
+.color-rose {
+    color: var(--color-rose) !important
+}
+.bg-yellow {
+    background: var(--color-yellow)
+}
+.bg-teal {
+    background: var(--color-teal)
+}
+.bg-blue {
+    background: var(--color-blue)
+}
+.bg-opacity-default {
+    background: rgba(var(--rgb-default), 0.085);
+}
+.icon-blob-yellow:after {
+    color: rgba(var(--rgb-yellow), 0.3);
+}
+.icon-blob-green:after {
+    color: rgba(var(--rgb-green), 0.25);
+}
+.icon-blob-teal:after {
+    color: rgba(var(--rgb-teal), 0.25);
+}
+.icon-blob-blue:after {
+    color: rgba(var(--rgb-blue), 0.25);
+}
+.icon-blob-purple:after {
+    color: rgba(var(--rgb-purple), 0.25);
+}
+.icon-blob-rose:after {
+    color: rgba(var(--rgb-rose), 0.25);
+}
+/*-----------------------------------------------------------------------------------*/
+/*	62. INVERSE TEXT
+/*-----------------------------------------------------------------------------------*/
+.inverse-text p,
+.inverse-text li,
+.inverse-text span,
+.inverse-text h2:not([class*="color-"]),
+.inverse-text h3:not([class*="color-"]),
+.inverse-text h5:not([class*="color-"]),
+.inverse-text.transparent:not(.fixed) .navbar-nav .nav-link,
+.inverse-text.transparent:not(.fixed) .navbar-other .nav-item a,
+.inverse-text.transparent:not(.fixed) .navbar-other .nav-item button,
+.inverse-text .color-dark,
+.inverse-text .meta,
+.inverse-text .meta a,
+.inverse-text .widget a:hover,
+.inverse-text address {
+    color: var(--color-white);
+}
+.offcanvas-info.inverse-text,
+.offcanvas-info.inverse-text p,
+.offcanvas-info.inverse-text li,
+.offcanvas-info.inverse-text span,
+.offcanvas-info.inverse-text a,
+.offcanvas-info.inverse-text address,
+footer.inverse-text address {
+    color: #cacaca;
+}
+.inverse-text .meta a:hover {
+    color: var(--color-default);
+}
+.inverse-text .meta span+span:before {
+    background: rgba(var(--rgb-white), 0.5);
+}
+.inverse-text select {
+    background: rgba(var(--rgb-white), 0.07);
+    color: var(--color-white);
+}
+.inverse-text hr {
+    border-color: rgba(var(--rgb-white), 0.15);
+}
+.inverse-text .btn:not(.btn-white),
+.inverse-text .btn:not(.btn-white):hover,
+.inverse-text .btn:not(.btn-white):focus,
+.inverse-text .btn:not(.btn-white):active {
+    color: var(--color-white) !important;
+}
+/*-----------------------------------------------------------------------------------*/
+/*	63. BOX LAYOUT
+/*-----------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------*/
+/*	64. RESPONSIVE
+/*-----------------------------------------------------------------------------------*/
+@media (min-width: 1200px) {
+    .rev_slider_wrapper {
+        min-height: 500px;
+    }
+}
+@media (max-width: 1024px) {}
+@media (min-width: 992px) {
+    .navbar-nav .nav-link {
+        padding-top: 1.7rem;
+        padding-bottom: 1.7rem;
+    }
+    .navbar.transparent .navbar-nav .nav-link {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    .navbar-nav .nav-link:hover {
+        background: none;
+    }
+    .navbar-nav .nav-link:hover,
+    .navbar-other .nav-item a:not(.btn):hover,
+    .navbar-other .nav-item button:hover {
+        color: var(--color-default);
+    }
+    .navbar-other.inverse-text .nav-item a:not(.btn),
+    .navbar-other.inverse-text .nav-item button {
+        color: var(--color-white);
+    }
+    .navbar-other.inverse-text .nav-item a:not(.btn):hover,
+    .navbar-other.inverse-text .nav-item button:hover {
+        color: var(--color-white) !important;
+        opacity: 0.8 !important;
+    }
+    .navbar .navbar-nav .nav-link {
+        padding-right: 1.2rem;
+        padding-left: 1.2rem
+    }
+    .navbar-other .nav-item a:not(.btn),
+    .navbar-other .nav-item button {
+        font-size: 1.1rem;
+    }
+}
+@media (max-width: 991.98px) {
+    .navbar-other {
+        padding-left: 3px;
+    }
+    .navbar-nav .nav-link {
+        color: var(--color-white);
+    }
+    .navbar-nav .nav-link {
+        padding-top: 0.7rem;
+        padding-bottom: 0.7rem;
+    }
+    .navbar-other .nav-item a:not(.btn),
+    .navbar-other .nav-item button {
+        font-size: 1.3rem;
+    }
+    .navbar-nav {
+        text-align: left !important;
+    }
+    .navbar .navbar-brand {
+        padding-top: 1.25rem;
+        padding-bottom: 1.25rem;
+    }
+    .offcanvas-nav {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 100%;
+        left: -300px;
+        width: 300px;
+        padding-right: 1.5rem;
+        padding-left: 1.5rem;
+        padding-bottom: 0.5rem;
+        overflow-y: auto;
+        visibility: hidden;
+        background: #1e2228;
+        transition-timing-function: ease-in-out;
+        transition-duration: .3s;
+        transition-property: left, visibility;
+        align-items: start;
+        -moz-background-clip: padding;
+        -webkit-background-clip: padding;
+        background-clip: padding-box;
+    }
+    .navbar-expand-lg .navbar-nav {
+        -ms-flex-direction: column;
+        flex-direction: column;
+    }
+    .pr-md-15 {
+        padding-right: 15px !important;
+    }
+    .pl-md-15 {
+        padding-left: 15px !important;
+    }
+}
+@media (max-width: 767px) {
+    .container {
+        padding-right: 20px;
+        padding-left: 20px;
+    }
+    .navbar .container {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    .row>[class*="col-"] {
+        margin-bottom: 30px
+    }
+    .row>[class*="col-"]:last-child,
+    .row>[class*="col-"]:only-child {
+        margin-bottom: 0;
+    }
+    .inner {
+        padding-top: 4rem;
+        padding-bottom: 4rem;
+    }
+    footer .inner {
+        padding-bottom: 3rem;
+    }
+}

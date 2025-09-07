@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Check if the file argument is provided
+if [ -z "$1" ]; then
+  echo "Uso: cancellalineebianche file"
+  exit 1
+fi
+
+# Assign the file name to a variable
+fn="$1"
+
+# Backup the original file
+mv -f "$fn" "${fn}.was"
+
+# Use grep to remove blank lines and write the result to the original file
+grep -v '^$' "${fn}.was" > "$fn"
+
+# Prompt the user to remove the backup file
+echo "    ---> remove ${fn}.was ?"
+rm -i "${fn}.was"

@@ -1,0 +1,99 @@
+  <!-- Framework CSS -->
+    <link rel="stylesheet" href="http://www.gironi.it/css/screen.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="http://www.gironi.it/css/print.css" type="text/css" media="print">
+    <link rel="stylesheet" type="text/css" media="all" href="http://www.gironi.it/css/menu_hb.css" />
+    <link rel="stylesheet" href="http://www.gironi.it/css/stile.css" type="text/css" media="screen, projection">
+
+    <!--[if IE]><link rel="stylesheet" href="http://www.gironi.it/css/ie.css" type="text/css" media="screen, projection"><![endif]-->
+
+<body>
+
+<div class="container">
+
+<!--HEADER-->
+    <div class="span-24 last" style="background-image:url('http://www.gironi.it/images/header.gif');width:950px;height:100px;">
+    </div>
+<!--FINE HEADER-->
+
+
+<!--MENU NAV - diviso in due parti: nav e search-->
+    <div class="span-24 expl" style="background:#333;">
+
+
+	<!--Parte nav-->
+        <div class="span-18">
+
+          <ul id="menu_h">
+	        <li><a href="http://www.gironi.it/chisono.php" id="chisono" title="chi sono">chi sono</a></li>
+	        <li><a href="http://www.gironi.it/soluzioni.php" id="soluzioni" title="soluzioni">soluzioni</a></li>
+	        <li><a href="http://www.gironi.it/portfolio.php" id="portfolio" title="portfolio">portfolio</a></li>
+	        <li><a href="http://paologironi.com/blog/" id="blog" title="blog">blog</a></li>
+	        <li><a href="http://www.gironi.it/retropc/index.php" id="ecologia" title="ecologia informatica">ecologia informatica</a></li>
+	        <li><a href="http://www.gironi.it/utility.php" id="utility" title="blog">utilit&agrave;</a></li>
+          </ul>
+
+        </div>
+
+        <div class="span-6 last">
+
+
+<a href="http://twitter.com/dj_trondheim" border="0" target=_blank"><img src="http://www.gironi.it/images/twitter.gif" width="32" height="32" style="margin-top:4px;float:right;margin-right:10px;"/></a>
+
+<!-- <img src="images/facebook.gif" width="32" height="32" style="margin-top:4px;float:right;margin-right:10px;"/>   -->  
+<a href="http://delicious.com/pgironi" border="0" target=_blank"><img src="http://www.gironi.it/images/delicious.gif" width="32" height="32" style="margin-top:4px;float:right;margin-right:10px;"/></a>
+
+
+    </div>
+<!--Fine search-->
+
+</div>
+<!--FINE MENU NAV-->
+
+
+
+
+
+<p style="line-height:2px;">&nbsp;</p>
+
+
+<!--PARTE CONTENUTO-->
+    <div class="span-24 last" style="background-color:white;">
+    
+   <h3>The page you requested [<!--#echo var="REQUEST_URI" -->] is no longer here <small>[error 404]</small></h3>
+
+<p>You may not be able to find this page because of:</p>
+ 
+<ol type="a">
+ 
+  <li>An <strong>out-of-date bookmark/favourite</strong></li>
+ 
+  <li>A search engine that has an <strong>out-of-date listing for us</strong></li>
+ 
+  <li>A <strong>mis-typed address</strong></li>
+ 
+</ol>
+
+<hr/>
+
+<h3>La pagina richiesta [<!--#echo var="REQUEST_URI" -->] non &egrave; qui <small>[errore 404]</small></h3>
+
+<p>Non &egrave; stato possibile trovarla perch&egrave;:</p>
+ 
+<ol type="a">
+ 
+  <li><strong>Il bookmark non &egrave; aggiornato</strong></li>
+ 
+  <li>Avete usato un motore di ricerca <strong>non aggiornato</strong></li>
+ 
+  <li>A causa di un <strong>indirizzo digitato male</strong></li>
+ 
+</ol>
+
+<hr/>
+
+<h3><a href="http://www.gironi.it">Perch&egrave; non ripartire dalla home?</a> </h3>
+</div>
+
+</div>
+</body>
+

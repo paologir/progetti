@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Funzione di aiuto
+show_help() {
+    echo "Utilizzo: $0 directory nome_archivio"
+    echo "Crea un archivio tar.gz di una directory"
+    echo
+    echo "Argomenti:"
+    echo "  directory       Directory da comprimere"
+    echo "  nome_archivio  Nome del file di output"
+    exit 1
+}
+
+# Controllo del numero di argomenti
+if [ $# -ne 2 ]; then
+    show_help
+fi
+
+directory="${1%/}"  # Rimuove lo slash finale se presente
+output_file="$2"
+
+# Aggiunge l'estensione .tar.gz se non presente
+if [[ ! "$output_file" =~ \.tar\.gz$ ]]; then
+    output_file="${output_file}.tar.gz"
+fi
+
+# Verifica che la directory esista
+if [ ! -d "$directory" ]; then
+    echo "Errore: La directory $directory non esiste"
+    exit 1
+fi
+
+# Crea l'archivio
+echo "Esecuzione comando: tar -czv -f $output_file -C $(dirname "$directory") $(basename "$directory")"
+if tar -czv -f "$output_file" -C "$(dirname "$directory")" "$(basename "$directory")"; then
+    echo -e "\nArchivio $output_file creato con successo!"
+else
+    echo "Errore durante la creazione dell'archivio"
+    exit 1
+fi

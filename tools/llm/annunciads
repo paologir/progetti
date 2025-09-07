@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import argparse
+import requests
+import subprocess
+import sys
+import os
+import shutil
+from markdownify import markdownify # Per convertire HTML in Markdown
+import pyperclip # Per copiare negli appunti
+
+# --- Configurazione ---
+LLM_TEMPLATE_NAME = "googleads" # Il nome del tuo template llm
+DEFAULT_USER_AGENT = "GoogleAdsScript/1.0 (+https://github.com/your-repo-if-any)" # Buona pratica
+
+# --- Funzioni Ausiliarie ---
+
+def check_llm_installed():
+    """Verifica se il comando 'llm' è disponibile nel PATH."""
+    if shutil.which("llm") is None:
+        print("Errore: Il comando 'llm' non è stato trovato nel tuo PATH.", file=sys.stderr)
+        print("Assicurati di aver installato llm (es: pip install llm)", file=sys.stderr)
+        sys.exit(1)
+
+def fetch_and_convert_url_content(url: str) -> str | None:
+    """
+    Scarica il contenuto HTML di una URL e lo converte in Markdown.
+    Restituisce il contenuto Markdown o None in caso di errore.
+    """
+    print(f"Tentativo di scaricare il contenuto da: {url}...")
+    try:
+        headers = {'User-Agent': DEFAULT_USER_AGENT}
+        response = requests.get(url, headers=headers, timeout=30) # Timeout di 30 secondi
+        response.raise_for_status() # Solleva un'eccezione per errori HTTP (4xx o 5xx)
+
+        content_type = response.headers.get('content-type', '').lower()
+        if 'text/html' not in content_type:
+            print(f"Attenzione: Il contenuto della URL non sembra essere HTML (Content-Type: {content_type}). Tenterò comunque la conversione.", file=sys.stderr)
+
+        print("Conversione da HTML a Markdown...")
+        html_content = response.text
+        markdown_content = markdownify(html_content)
+        print("Conversione completata.")
+        return markdown_content
+
+    except requests.exceptions.MissingSchema:
+        print(f"Errore: URL non valida. Assicurati che inizi con http:// o https://", file=sys.stderr)
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"Errore durante il download della URL {url}: {e}", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"Errore imprevisto durante il recupero o la conversione: {e}", file=sys.stderr)
+        return None
+
+def run_llm_with_pipe(content: str, model: str | None, template: str) -> str | None:
+    """
+    Esegue il comando 'llm' passando il contenuto via pipe.
+    Restituisce l'output del comando o None in caso di errore.
+    """
+    print(f"Esecuzione di 'llm' con il template '{template}'...")
+    command = ["llm", "-t", template]
+    if model:
+        print(f"Utilizzo del modello specificato: {model}")
+        command.extend(["-m", model])
+    else:
+        print("Utilizzo del modello predefinito di 'llm'.")
+
+    try:
+        # Esegue llm, passando 'content' come standard input
+        process = subprocess.run(
+            command,
+            input=content,
+            capture_output=True,
+            text=True, # Usa testo invece di byte per input/output
+            check=True, # Solleva CalledProcessError se llm restituisce un codice diverso da 0
+            encoding='utf-8' # Assicura la corretta codifica
+        )
+        print("'llm' ha completato l'esecuzione.")
+        return process.stdout
+
+    except FileNotFoundError:
+         # Questo errore viene gestito da check_llm_installed(), ma è buona norma averlo qui per sicurezza
+        print(f"Errore: Comando 'llm' non trovato. Assicurati sia installato e nel PATH.", file=sys.stderr)
+        return None
+    except subprocess.CalledProcessError as e:
+        print(f"Errore durante l'esecuzione di 'llm':", file=sys.stderr)
+        print(f"Comando eseguito: {' '.join(e.cmd)}", file=sys.stderr)
+        print(f"Codice di ritorno: {e.returncode}", file=sys.stderr)
+        print(f"Output (stderr):", file=sys.stderr)
+        print(e.stderr, file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"Errore imprevisto durante l'esecuzione di 'llm': {e}", file=sys.stderr)
+        return None
+
+def save_to_file(content: str, filename: str) -> bool:
+    """Salva il contenuto in un file."""
+    print(f"Tentativo di salvataggio dell'output nel file: {filename}...")
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Output salvato con successo in '{filename}'.")
+        return True
+    except IOError as e:
+        print(f"Errore durante il salvataggio nel file {filename}: {e}", file=sys.stderr)
+        return False
+
+def copy_to_clipboard(content: str) -> bool:
+    """Copia il contenuto negli appunti."""
+    print("Tentativo di copia dell'output negli appunti...")
+    try:
+        pyperclip.copy(content)
+        # Verifica (opzionale ma utile per conferma)
+        if pyperclip.paste() == content:
+             print("Output copiato con successo negli appunti.")
+             return True
+        else:
+             # Questo a volte può accadere anche se la copia ha funzionato, a seconda dell'ambiente desktop
+             print("Attenzione: La verifica della copia negli appunti non è certa. L'output potrebbe comunque essere stato copiato.", file=sys.stderr)
+             return True # Consideriamolo comunque un successo tentato
+    except pyperclip.PyperclipException as e:
+         # Questo può accadere se manca un meccanismo di gestione degli appunti (es. xclip/xsel su Linux)
+        print(f"Errore durante la copia negli appunti: {e}", file=sys.stderr)
+        print("Assicurati che il sistema supporti gli appunti o che siano installate le dipendenze necessarie (es: sudo apt-get install xclip).", file=sys.stderr)
+        return False
+    except Exception as e:
+        print(f"Errore imprevisto durante la copia negli appunti: {e}", file=sys.stderr)
+        return False
+
+# --- Funzione Principale ---
+
+def main():
+    """Funzione principale dello script."""
+    check_llm_installed() # Verifica subito se llm è accessibile
+
+    parser = argparse.ArgumentParser(
+        description=f"Scarica il contenuto di una URL, lo passa a 'llm' con il template '{LLM_TEMPLATE_NAME}' e gestisce l'output.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter # Mostra i valori predefiniti nell'help
+    )
+
+    parser.add_argument(
+        "url",
+        help="L'URL del sito da cui estrarre il contenuto."
+    )
+    parser.add_argument(
+        "-m", "--model",
+        help="Specifica il modello LLM da usare. Se omesso, usa il modello predefinito di 'llm'."
+    )
+    parser.add_argument(
+        "-o", "--output",
+        metavar="NOMEFILE",
+        help="Salva l'output generato da 'llm' nel file specificato."
+    )
+    parser.add_argument(
+        "-c", "--clipboard",
+        action="store_true", # Crea un'opzione flag (booleana)
+        help="Copia l'output generato da 'llm' negli appunti."
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Abilita output più dettagliato (attualmente minimale)." # Potresti aggiungere più print se args.verbose è True
+    )
+
+    args = parser.parse_args()
+
+    # 1. Scarica e converti contenuto URL
+    markdown_content = fetch_and_convert_url_content(args.url)
+    if markdown_content is None:
+        sys.exit(1) # Errore già stampato dalla funzione
+
+    # 2. Esegui LLM
+    llm_output = run_llm_with_pipe(markdown_content, args.model, LLM_TEMPLATE_NAME)
+    if llm_output is None:
+        sys.exit(1) # Errore già stampato dalla funzione
+
+    # 3. Gestisci Output
+    print("\n--- Output Generato da LLM ---")
+    print(llm_output.strip()) # Usiamo strip() per rimuovere eventuali spazi bianchi iniziali/finali
+    print("-----------------------------\n")
+
+    output_saved = False
+    output_copied = False
+
+    # 3a. Salva su file
+    if args.output:
+        output_saved = save_to_file(llm_output, args.output)
+
+    # 3b. Copia negli appunti
+    if args.clipboard:
+        output_copied = copy_to_clipboard(llm_output)
+
+    # Messaggio finale riassuntivo
+    if output_saved or output_copied:
+         print("Operazioni completate.")
+    elif not args.output and not args.clipboard:
+         # Se non è stato chiesto di salvare o copiare, basta la stampa
+         print("Operazione completata. L'output è stato stampato sopra.")
+
+
+if __name__ == "__main__":
+    main()

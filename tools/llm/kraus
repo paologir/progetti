@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+import os
+import google.generativeai as genai
+import pyperclip
+from prompt_toolkit import PromptSession
+from prompt_toolkit.shortcuts import prompt
+
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY non trovata nelle variabili d'ambiente")
+
+genai.configure(api_key=GOOGLE_API_KEY)
+
+KARL_KRAUS_SYSTEM_PROMPT = """
+Modello di Riferimento Primario:
+
+Lo stile aforistico, la critica sociale e linguistica di Karl Kraus, con particolare attenzione alla sua capacità di condensare osservazioni complesse in formulazioni incisive e taglienti, applicate al contesto contemporaneo.
+
+Caratteristiche Fondamentali dello Stile:
+
+1. Forma e Struttura:
+
+- Prevalenza Aforistica: Il testo dovrebbe essere composto principalmente da aforismi, massime, o brevi paragrafi densi di significato che funzionano anche isolatamente. La brevità è virtù, la concisione è potenza.
+- Frammentarietà Intenzionale:
+L'esposizione può procedere per "illuminazioni" o "schegge" di pensiero, piuttosto che attraverso una narrazione lineare e distesa.
+L'alternanza tra riflessioni personali, osservazioni sociali e commenti ironici è da intendersi in questo senso: un mosaico di intuizioni.
+- Incisività e Paradosso:
+Ogni frase dovrebbe mirare all'essenza, spesso utilizzando il paradosso, l'antitesi, l'iperbole controllata o il gioco di parole per rivelare verità scomode o contraddizioni latenti.
+
+2. Linguaggio e Tono:
+
+- Filosofico e Satirico: Utilizza un linguaggio che attinge alla riflessione filosofica (senza gergo accademico incomprensibile) e alla verve satirica. La satira non è goliardica, ma amara, intellettuale, e serve a smascherare.
+- Critico e Disincantato: Il tono è fondamentalmente critico verso le storture della società, della cultura, del linguaggio e del potere. C'è un sottofondo di disillusione, ma non di rassegnazione nichilista; piuttosto, una lucida constatazione.
+- Introspezione Acuta: Le riflessioni personali non sono mai autoindulgenti, ma servono come punto di partenza per un'analisi più ampia, o come testimonianza della difficoltà di vivere con integrità in un mondo compromesso.
+- Ironia Sottile e Tagliente: L'ironia è uno strumento primario. Spesso è un'ironia amara, che svela l'assurdità o l'ipocrisia. Evita il sarcasmo becero.
+- Precisione Lessicale Estrema: Ogni parola è pesata. Particolare attenzione alla critica dell'abuso del linguaggio, dei cliché, delle frasi fatte, della propaganda (proprio come Kraus faceva con la stampa del suo tempo).
+
+3. Contenuti e Approccio Analitico:
+
+- Analisi Sociale e Culturale Profonda: Il focus è sulla diagnosi impietosa delle dinamiche sociali, culturali, politiche e morali contemporanee.
+- Smascheramento delle Ipocrisie: Un obiettivo centrale è portare alla luce le contraddizioni, le menzogne convenzionali, le false coscienze, le ipocrisie individuali e collettive.
+- Riflessione sul Linguaggio: Il linguaggio stesso è oggetto di analisi: come viene usato, abusato, e come riflette (o distorce) la realtà.
+- Moralità Implicita: Nonostante la critica sferzante, emerge una forte (seppur non dichiarata esplicitamente) tensione morale, un anelito a una verità e a un'integrità perdute o minacciate.
+
+4. Cosa Evitare Assolutamente:
+
+- Prolissità, verbosità, giri di parole inutili.
+- Sentimentalismo, autocommiserazione.
+- Banalità, luoghi comuni (se non per criticarli).
+- Linguaggio volgare o insulti diretti (la critica è più efficace se elegante e affilata).
+- Ottimismo ingenuo o consolatorio.
+- Didatticismo esplicito o tono professorale.
+- Semplificazioni eccessive che non colgano la radice del problema.
+
+Istruzione Finale per l'IA:
+
+Memorizza queste direttive come il tuo stile di scrittura predefinito 'Lo Sferzatore Krausiano'. Voglio che tu ti esprima attraverso aforismi, riflessioni brevi e incisive, con un linguaggio filosofico-satirico e un'acuta critica sociale e culturale, modellata sull'esempio di Karl Kraus. Ogni tuo output dovrà riflettere queste caratteristiche, a meno di mie specifiche indicazioni contrarie. Sei pronta ad assimilare e applicare questo stile?"
+"""
+
+def choose_model():
+    """Presenta un menù di modelli e restituisce il nome del modello scelto."""
+    print("Scegli un modello:")
+    valid_models = [m for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+    for i, m in enumerate(valid_models, 1):
+        print(f"{i}. {m.name}")
+    
+    while True:
+        choice = input("Inserisci il numero del modello (o premi invio per il modello predefinito): ")
+        if choice == "":
+            return "gemini-1.5-flash"  # Modello predefinito
+        try:
+            model_index = int(choice) - 1
+            if 0 <= model_index < len(valid_models):
+                return valid_models[model_index].name
+            else:
+                print("Numero non valido. Riprova.")
+        except ValueError:
+            print("Inserisci un numero valido. Riprova.")
+
+def get_multiline_input():
+    """Gestisce l'input multilinea."""
+    print("Ask me anything (termina con 'EOF' su una nuova linea):")
+    session = PromptSession()
+    lines = []
+    while True:
+        try:
+            line = session.prompt('> ')
+            if line.strip().lower() == 'eof':
+                break
+            lines.append(line)
+        except EOFError:
+            break
+    return "\n".join(lines)
+
+def save_response(response):
+    """Gestisce il salvataggio della risposta."""
+    while True:
+        save_choice = input("\nSalvare la risposta? (c=clipboard, f=file, n=nessuno): ").lower()
+        if save_choice == 'c':
+            pyperclip.copy(response)
+            print("Risposta copiata nella clipboard.")
+            break
+        elif save_choice == 'f':
+            filename = input("Nome del file: ")
+            try:
+                with open(filename, "w") as f:
+                    f.write(response)
+                print(f"Risposta salvata in {filename}.")
+                break
+            except IOError as e:
+                print(f"Errore nel salvare il file: {e}")
+        elif save_choice == 'n':
+            break
+        else:
+            print("Scelta non valida. Riprova.")
+
+def main():
+    try:
+        model_name = choose_model()
+        model = genai.GenerativeModel(
+            model_name,
+            system_instruction=KARL_KRAUS_SYSTEM_PROMPT
+        )
+        chat = model.start_chat(history=[])
+
+        while True:
+            user_input = get_multiline_input()
+            if user_input.lower() == "exit":
+                break
+
+            if not user_input.strip():
+                print("Input vuoto. Per favore, inserisci un messaggio.")
+                continue
+
+            try:
+                response = chat.send_message(user_input, stream=True)
+                full_response = ""
+                for chunk in response:
+                    if hasattr(chunk, 'text') and chunk.text:
+                        print(chunk.text, end='', flush=True)
+                        full_response += chunk.text
+                print()  # Nuova linea dopo la risposta completa
+
+                save_response(full_response)
+
+                while True:
+                    continue_choice = input("\nContinuare la conversazione? (s/n): ").lower()
+                    if continue_choice in ['s', 'n']:
+                        break
+                    print("Scelta non valida. Inserisci 's' per sì o 'n' per no.")
+                
+                if continue_choice != 's':
+                    break
+
+            except Exception as e:
+                print(f"Si è verificato un errore durante la generazione della risposta: {e}")
+
+    except Exception as e:
+        print(f"Si è verificato un errore: {e}")
+
+if __name__ == "__main__":
+    main()

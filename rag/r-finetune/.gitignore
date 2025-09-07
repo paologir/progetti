@@ -1,0 +1,60 @@
+# R files
+.Rhistory
+.Rdata
+.RData
+.rdata
+*.Rproj
+*.Rproj.user
+
+# Python virtual environments (if mixed project)
+venv/
+env/
+.env
+*.env
+.venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# LLM model files
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+models/
+model_cache/
+checkpoints/
+
+# Training outputs
+training_logs/
+runs/
+wandb/
+
+# Data files
+data/
+datasets/
+*.csv
+*.tsv
+*.json
+*.jsonl
+
+# Logs and temporary files
+*.log
+*.tmp
+temp/
+tmp/
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

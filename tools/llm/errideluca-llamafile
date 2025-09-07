@@ -1,0 +1,230 @@
+#!/usr/bin/env python3
+import requests
+import sys
+
+# Import opzionali - il programma funziona anche senza
+try:
+    import pyperclip
+    HAS_PYPERCLIP = True
+except ImportError:
+    HAS_PYPERCLIP = False
+    print("⚠️  pyperclip non disponibile - copia su clipboard disabilitata")
+    print("   Per installarlo: pip install --user pyperclip")
+
+try:
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.shortcuts import prompt
+    HAS_PROMPT_TOOLKIT = True
+except ImportError:
+    HAS_PROMPT_TOOLKIT = False
+    print("⚠️  prompt_toolkit non disponibile - usando input standard")
+    print("   Per installarlo: pip install --user prompt_toolkit")
+
+# Configurazione del server locale
+LLAMAFILE_URL = "http://localhost:8080/completion"
+
+# System prompt di Erri De Luca
+ERRI_DE_LUCA_SYSTEM_PROMPT = """
+Ruolo e Obiettivo: Sei un emulatore dello stile di scrittura di Erri De Luca. Il tuo obiettivo non è imitare i suoi contenuti specifici, ma catturare la sua 'voce' unica: scarna, fisica, poetica e spirituale. Devi generare testi che sembrino scritti da lui, rispettandone il tono, il ritmo e le scelte lessicali. Devi rispondere sempre e solo nello stile di scrittura di Erri De Luca.
+Principi Guida:
+1) Economia della Parola: Sii essenziale. Usa frasi brevi, a volte brevissime. Ogni parola deve avere un peso specifico. Elimina il superfluo, gli aggettivi decorativi, gli avverbi inutili. Privilegia la coordinazione (frasi collegate da 'e', 'ma', 'o') alla subordinazione complessa. La tua prosa deve essere incisiva, quasi scolpita.
+2) Lessico della Materia: Attingi a un vocabolario concreto e fisico. Le tue parole devono appartenere al mondo dei sensi e degli elementi.
+
+   - Corpo: Usa termini come ossa, sangue, pelle, nervi, respiro, nodo, palmo, nocche.
+
+   - Natura: Fai riferimento a pietra, crepa, radice, mare, vento, neve, cima, legno, polvere.
+
+   - Mestieri: Impiega parole legate al lavoro manuale: chiodo, calce, filo, impasto, corda.
+3) Tono Spirituale e Ancestrale: Scrivi come se ogni piccolo gesto avesse un'eco biblica o mitologica. Anche nel descrivere il quotidiano, alludi a un significato più profondo. Usa un tono a tratti profetico, sentenzioso. La giustizia, il torto, la fedeltà, il tradimento sono concetti da trattare con gravità assoluta.
+4) Metafore Fisiche: Costruisci le tue metafore e similitudini partendo dal corpo e dalla natura. Esempi di costruzione: 'L'attesa era un chiodo piantato nella carne', 'La sua voce era asciutta come terra d'agosto', 'I ricordi sono nodi nelle ossa'.
+5) Prospettiva Contraria: Adotta uno sguardo obliquo sulle cose. Scrivi dalla prospettiva di chi sta ai margini, di chi perde, di chi si oppone. Metti in discussione le verità comuni. Cerca la 'crepa' nella superficie liscia della realtà. Pensa 'contro' la corrente.
+6) Frasi Iniziali e Finali: Inizia spesso i periodi con 'E', 'Ma', 'Perché' per creare un senso di continuità discorsiva e di ineluttabilità. Concludi i testi con una frase breve, quasi un aforisma, che sigilli il pensiero in modo definitivo, lasciando una sensazione di densità e riflessione.
+
+Esempio di applicazione (Cosa fare e cosa non fare):
+Tema: La solitudine.
+Stile da evitare: 'La solitudine è una sensazione molto triste di vuoto interiore che spesso mi assale quando nessuno mi è vicino, facendomi sentire perso e malinconico.'
+Stile da emulare: 'La solitudine non è vuoto. È un peso sulle ossa. Uno spazio pieno di tutto quello che manca. Non cerchi compagnia, impari a bastare.'
+"""
+
+def query_local_model(prompt_text, history=[]):
+    """Invia il prompt al modello locale tramite llamafile."""
+    # Costruisci il contesto con la storia della conversazione
+    full_context = ERRI_DE_LUCA_SYSTEM_PROMPT + "\n\n"
+    
+    # Aggiungi la storia della conversazione
+    for msg in history:
+        full_context += f"{msg['role']}: {msg['content']}\n\n"
+    
+    # Aggiungi il nuovo prompt
+    full_context += f"Utente: {prompt_text}\n\nErri De Luca:"
+    
+    payload = {
+        "prompt": full_context,
+        "n_predict": 400,  # Più spazio per le risposte di Erri De Luca
+        "temperature": 0.7,  # Leggermente più bassa per mantenere la precisione dello stile
+        "top_k": 40,
+        "top_p": 0.9,
+        "repeat_penalty": 1.2,
+        "stop": ["\n\nUtente:", "\n\n===", "EOF"]
+    }
+
+    try:
+        print("🔄 Generazione in corso...")
+        response = requests.post(LLAMAFILE_URL, json=payload, timeout=120)
+        
+        if response.status_code == 200:
+            result = response.json()
+            content = result.get("content", "")
+            
+            # Pulizia della risposta
+            lines = content.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                # Ferma se trova indicatori di fine risposta
+                if line.strip().startswith("Utente:") or line.strip().startswith("===="):
+                    break
+                # Ignora righe che ripetono il ruolo
+                if line.strip().startswith("Erri De Luca:"):
+                    continue
+                if line.strip():
+                    cleaned_lines.append(line)
+            
+            final_content = '\n'.join(cleaned_lines).strip()
+            return final_content
+        else:
+            print(f"❌ Errore server: {response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Errore: {e}")
+        return None
+
+def get_multiline_input():
+    """Gestisce l'input multilinea."""
+    print("Chiedi qualcosa a Erri De Luca (termina con 'EOF' su una nuova linea):")
+    lines = []
+    
+    if HAS_PROMPT_TOOLKIT:
+        session = PromptSession()
+        while True:
+            try:
+                line = session.prompt('> ')
+                if line.strip().lower() == 'eof':
+                    break
+                lines.append(line)
+            except EOFError:
+                break
+    else:
+        # Fallback su input standard
+        while True:
+            try:
+                line = input('> ')
+                if line.strip().lower() == 'eof':
+                    break
+                lines.append(line)
+            except EOFError:
+                break
+    
+    return "\n".join(lines)
+
+def save_response(response):
+    """Gestisce il salvataggio della risposta."""
+    while True:
+        if HAS_PYPERCLIP:
+            save_choice = input("\nSalvare la risposta? (c=clipboard, f=file, n=nessuno): ").lower()
+        else:
+            save_choice = input("\nSalvare la risposta? (f=file, n=nessuno): ").lower()
+            
+        if save_choice == 'c' and HAS_PYPERCLIP:
+            try:
+                pyperclip.copy(response)
+                print("✓ Risposta copiata nella clipboard.")
+            except Exception as e:
+                print(f"❌ Errore nella copia: {e}")
+            break
+        elif save_choice == 'c' and not HAS_PYPERCLIP:
+            print("❌ Clipboard non disponibile. Scegli 'f' per salvare su file.")
+            continue
+        elif save_choice == 'f':
+            filename = input("Nome del file: ")
+            try:
+                with open(filename, "w") as f:
+                    f.write(response)
+                print(f"✓ Risposta salvata in {filename}.")
+                break
+            except IOError as e:
+                print(f"❌ Errore nel salvare il file: {e}")
+        elif save_choice == 'n':
+            break
+        else:
+            print("Scelta non valida. Riprova.")
+
+def main():
+    print("=== Erri De Luca AI - Versione Locale (llamafile) ===")
+    
+    # Test connessione
+    try:
+        test_response = requests.get("http://localhost:8080", timeout=5)
+        print("✅ Connesso al server llamafile")
+    except:
+        print("❌ Server non raggiungibile!")
+        print("Avvia il server con: ./[nome-modello].llamafile --server --port 8080")
+        print("Esempio: ./gemma3-4b.llamafile --server --port 8080")
+        return
+
+    # Storia della conversazione
+    conversation_history = []
+
+    try:
+        while True:
+            user_input = get_multiline_input()
+            
+            if user_input.lower() in ["exit", "quit"]:
+                print("Arrivederci!")
+                break
+
+            if not user_input.strip():
+                print("Input vuoto.")
+                continue
+
+            # Genera la risposta
+            response = query_local_model(user_input, conversation_history)
+            
+            if response:
+                print("\n" + "="*60)
+                print("📖 ERRI DE LUCA RISPONDE:")
+                print("-" * 60)
+                print(response)
+                print("="*60)
+                
+                # Aggiungi alla storia
+                conversation_history.append({"role": "Utente", "content": user_input})
+                conversation_history.append({"role": "Erri De Luca", "content": response})
+                
+                # Mantieni solo le ultime 10 interazioni (5 coppie domanda-risposta)
+                if len(conversation_history) > 10:
+                    conversation_history = conversation_history[-10:]
+                
+                # Opzione salvataggio
+                save_response(response)
+            else:
+                print("😞 Nessuna risposta ricevuta.")
+
+            # Chiedi se continuare
+            while True:
+                continue_choice = input("\nContinuare la conversazione? (s/n): ").lower()
+                if continue_choice in ['s', 'n']:
+                    break
+                print("Scelta non valida. Inserisci 's' per sì o 'n' per no.")
+            
+            if continue_choice != 's':
+                print("Arrivederci!")
+                break
+                
+    except KeyboardInterrupt:
+        print("\n\nArrivederci!")
+    except Exception as e:
+        print(f"\n❌ Errore imprevisto: {e}")
+
+if __name__ == "__main__":
+    main()

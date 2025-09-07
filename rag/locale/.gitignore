@@ -1,0 +1,79 @@
+# Python virtual environments
+venv/
+env/
+.env
+*.env
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# LLM model files
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+models/
+model_cache/
+
+# Vector databases
+*.faiss
+*.db
+chroma_db/
+vector_store/
+
+# Logs and temporary files
+*.log
+*.tmp
+temp/
+tmp/
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Documentation builds
+docs/_build/

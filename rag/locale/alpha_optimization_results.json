@@ -1,0 +1,1422 @@
+{
+  "optimization_results": [
+    {
+      "alpha": 0.3,
+      "total_queries": 15,
+      "mean_reciprocal_rank": 0.5666666666666667,
+      "mean_average_precision": 1.5772751322751324,
+      "mean_precision_at_k": {
+        "1": 0.5333333333333333,
+        "3": 0.2,
+        "5": 0.11999999999999998,
+        "10": 0.05999999999999999
+      },
+      "query_results": [
+        {
+          "query": "Quali sono i concorrenti di Didonè Comacchio?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Che tipo di azienda è FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 8.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni generali su Maffeis Engineering",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.8285714285714285,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Dati di accesso per Progeo",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Quali sono i competitor di Maspe?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Account e credenziali di Seit",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Come funziona l'azienda ASAS?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Dettagli su Change Italia",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Concorrenti",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.16666666666666666,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni sui dati aziendali",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Chi è Francesca Endrizzi?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "MTMA Architetti dove si trova?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Casa nf firmato da didonè",
+          "reciprocal_rank": 1.0,
+          "average_precision": 8.66388888888889,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Proposte commerciali FIS",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Quanto costa la proposta per FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        }
+      ],
+      "difficulty_analysis": {
+        "easy": {
+          "count": 4,
+          "mrr": 0.75,
+          "map": 2.7071428571428573,
+          "p1": 0.75,
+          "p3": 0.25
+        },
+        "medium": {
+          "count": 6,
+          "mrr": 0.3333333333333333,
+          "map": 0.3333333333333333,
+          "p1": 0.3333333333333333,
+          "p3": 0.1111111111111111
+        },
+        "hard": {
+          "count": 5,
+          "mrr": 0.7,
+          "map": 2.1661111111111113,
+          "p1": 0.6,
+          "p3": 0.26666666666666666
+        }
+      }
+    },
+    {
+      "alpha": 0.4,
+      "total_queries": 15,
+      "mean_reciprocal_rank": 0.5666666666666667,
+      "mean_average_precision": 1.5772751322751324,
+      "mean_precision_at_k": {
+        "1": 0.5333333333333333,
+        "3": 0.2,
+        "5": 0.11999999999999998,
+        "10": 0.05999999999999999
+      },
+      "query_results": [
+        {
+          "query": "Quali sono i concorrenti di Didonè Comacchio?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Che tipo di azienda è FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 8.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni generali su Maffeis Engineering",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.8285714285714285,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Dati di accesso per Progeo",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Quali sono i competitor di Maspe?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Account e credenziali di Seit",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Come funziona l'azienda ASAS?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Dettagli su Change Italia",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Concorrenti",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.16666666666666666,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni sui dati aziendali",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Chi è Francesca Endrizzi?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "MTMA Architetti dove si trova?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Casa nf firmato da didonè",
+          "reciprocal_rank": 1.0,
+          "average_precision": 8.66388888888889,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Proposte commerciali FIS",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Quanto costa la proposta per FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        }
+      ],
+      "difficulty_analysis": {
+        "easy": {
+          "count": 4,
+          "mrr": 0.75,
+          "map": 2.7071428571428573,
+          "p1": 0.75,
+          "p3": 0.25
+        },
+        "medium": {
+          "count": 6,
+          "mrr": 0.3333333333333333,
+          "map": 0.3333333333333333,
+          "p1": 0.3333333333333333,
+          "p3": 0.1111111111111111
+        },
+        "hard": {
+          "count": 5,
+          "mrr": 0.7,
+          "map": 2.1661111111111113,
+          "p1": 0.6,
+          "p3": 0.26666666666666666
+        }
+      }
+    },
+    {
+      "alpha": 0.5,
+      "total_queries": 15,
+      "mean_reciprocal_rank": 0.5666666666666667,
+      "mean_average_precision": 1.5633068783068784,
+      "mean_precision_at_k": {
+        "1": 0.5333333333333333,
+        "3": 0.2,
+        "5": 0.11999999999999998,
+        "10": 0.05999999999999999
+      },
+      "query_results": [
+        {
+          "query": "Quali sono i concorrenti di Didonè Comacchio?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Che tipo di azienda è FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 8.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni generali su Maffeis Engineering",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.7619047619047619,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Dati di accesso per Progeo",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Quali sono i competitor di Maspe?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Account e credenziali di Seit",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Come funziona l'azienda ASAS?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Dettagli su Change Italia",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Concorrenti",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.16666666666666666,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni sui dati aziendali",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Chi è Francesca Endrizzi?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "MTMA Architetti dove si trova?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Casa nf firmato da didonè",
+          "reciprocal_rank": 1.0,
+          "average_precision": 8.521031746031746,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Proposte commerciali FIS",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Quanto costa la proposta per FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        }
+      ],
+      "difficulty_analysis": {
+        "easy": {
+          "count": 4,
+          "mrr": 0.75,
+          "map": 2.6904761904761907,
+          "p1": 0.75,
+          "p3": 0.25
+        },
+        "medium": {
+          "count": 6,
+          "mrr": 0.3333333333333333,
+          "map": 0.3333333333333333,
+          "p1": 0.3333333333333333,
+          "p3": 0.1111111111111111
+        },
+        "hard": {
+          "count": 5,
+          "mrr": 0.7,
+          "map": 2.137539682539683,
+          "p1": 0.6,
+          "p3": 0.26666666666666666
+        }
+      }
+    },
+    {
+      "alpha": 0.6,
+      "total_queries": 15,
+      "mean_reciprocal_rank": 0.5666666666666667,
+      "mean_average_precision": 1.6966402116402117,
+      "mean_precision_at_k": {
+        "1": 0.5333333333333333,
+        "3": 0.2,
+        "5": 0.11999999999999998,
+        "10": 0.05999999999999999
+      },
+      "query_results": [
+        {
+          "query": "Quali sono i concorrenti di Didonè Comacchio?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Che tipo di azienda è FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 10.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni generali su Maffeis Engineering",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.7619047619047619,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Dati di accesso per Progeo",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Quali sono i competitor di Maspe?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Account e credenziali di Seit",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Come funziona l'azienda ASAS?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Dettagli su Change Italia",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Concorrenti",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.16666666666666666,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni sui dati aziendali",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Chi è Francesca Endrizzi?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "MTMA Architetti dove si trova?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Casa nf firmato da didonè",
+          "reciprocal_rank": 1.0,
+          "average_precision": 8.521031746031746,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Proposte commerciali FIS",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Quanto costa la proposta per FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        }
+      ],
+      "difficulty_analysis": {
+        "easy": {
+          "count": 4,
+          "mrr": 0.75,
+          "map": 3.1904761904761907,
+          "p1": 0.75,
+          "p3": 0.25
+        },
+        "medium": {
+          "count": 6,
+          "mrr": 0.3333333333333333,
+          "map": 0.3333333333333333,
+          "p1": 0.3333333333333333,
+          "p3": 0.1111111111111111
+        },
+        "hard": {
+          "count": 5,
+          "mrr": 0.7,
+          "map": 2.137539682539683,
+          "p1": 0.6,
+          "p3": 0.26666666666666666
+        }
+      }
+    },
+    {
+      "alpha": 0.7,
+      "total_queries": 15,
+      "mean_reciprocal_rank": 0.4666666666666667,
+      "mean_average_precision": 1.593068783068783,
+      "mean_precision_at_k": {
+        "1": 0.3333333333333333,
+        "3": 0.2,
+        "5": 0.11999999999999998,
+        "10": 0.05999999999999999
+      },
+      "query_results": [
+        {
+          "query": "Quali sono i concorrenti di Didonè Comacchio?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Che tipo di azienda è FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 10.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni generali su Maffeis Engineering",
+          "reciprocal_rank": 0.5,
+          "average_precision": 1.2083333333333333,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Dati di accesso per Progeo",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Quali sono i competitor di Maspe?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Account e credenziali di Seit",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Come funziona l'azienda ASAS?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Dettagli su Change Italia",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Concorrenti",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.16666666666666666,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni sui dati aziendali",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Chi è Francesca Endrizzi?",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.5,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "MTMA Architetti dove si trova?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Casa nf firmato da didonè",
+          "reciprocal_rank": 1.0,
+          "average_precision": 8.521031746031746,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Proposte commerciali FIS",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.5,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Quanto costa la proposta per FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        }
+      ],
+      "difficulty_analysis": {
+        "easy": {
+          "count": 4,
+          "mrr": 0.625,
+          "map": 3.0520833333333335,
+          "p1": 0.5,
+          "p3": 0.25
+        },
+        "medium": {
+          "count": 6,
+          "mrr": 0.25,
+          "map": 0.25,
+          "p1": 0.16666666666666666,
+          "p3": 0.1111111111111111
+        },
+        "hard": {
+          "count": 5,
+          "mrr": 0.6,
+          "map": 2.0375396825396823,
+          "p1": 0.4,
+          "p3": 0.26666666666666666
+        }
+      }
+    },
+    {
+      "alpha": 0.8,
+      "total_queries": 15,
+      "mean_reciprocal_rank": 0.4666666666666667,
+      "mean_average_precision": 1.4123809523809523,
+      "mean_precision_at_k": {
+        "1": 0.3333333333333333,
+        "3": 0.2,
+        "5": 0.11999999999999998,
+        "10": 0.05999999999999999
+      },
+      "query_results": [
+        {
+          "query": "Quali sono i concorrenti di Didonè Comacchio?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Che tipo di azienda è FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 10.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni generali su Maffeis Engineering",
+          "reciprocal_rank": 0.5,
+          "average_precision": 1.3285714285714285,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Dati di accesso per Progeo",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Quali sono i competitor di Maspe?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Account e credenziali di Seit",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Come funziona l'azienda ASAS?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Dettagli su Change Italia",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Concorrenti",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.16666666666666666,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni sui dati aziendali",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Chi è Francesca Endrizzi?",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.5,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "MTMA Architetti dove si trova?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Casa nf firmato da didonè",
+          "reciprocal_rank": 1.0,
+          "average_precision": 5.69047619047619,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Proposte commerciali FIS",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.5,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Quanto costa la proposta per FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        }
+      ],
+      "difficulty_analysis": {
+        "easy": {
+          "count": 4,
+          "mrr": 0.625,
+          "map": 3.0821428571428573,
+          "p1": 0.5,
+          "p3": 0.25
+        },
+        "medium": {
+          "count": 6,
+          "mrr": 0.25,
+          "map": 0.25,
+          "p1": 0.16666666666666666,
+          "p3": 0.1111111111111111
+        },
+        "hard": {
+          "count": 5,
+          "mrr": 0.6,
+          "map": 1.471428571428571,
+          "p1": 0.4,
+          "p3": 0.26666666666666666
+        }
+      }
+    },
+    {
+      "alpha": 0.9,
+      "total_queries": 15,
+      "mean_reciprocal_rank": 0.4222222222222223,
+      "mean_average_precision": 1.2466666666666666,
+      "mean_precision_at_k": {
+        "1": 0.26666666666666666,
+        "3": 0.2,
+        "5": 0.11999999999999998,
+        "10": 0.05999999999999999
+      },
+      "query_results": [
+        {
+          "query": "Quali sono i concorrenti di Didonè Comacchio?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Che tipo di azienda è FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 10.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni generali su Maffeis Engineering",
+          "reciprocal_rank": 0.3333333333333333,
+          "average_precision": 1.0333333333333334,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Dati di accesso per Progeo",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Quali sono i competitor di Maspe?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Account e credenziali di Seit",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Come funziona l'azienda ASAS?",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Dettagli su Change Italia",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Concorrenti",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.16666666666666666,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Informazioni sui dati aziendali",
+          "reciprocal_rank": 0.0,
+          "average_precision": 0.0,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.0,
+            "5": 0.0,
+            "10": 0.0
+          }
+        },
+        {
+          "query": "Chi è Francesca Endrizzi?",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.5,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "MTMA Architetti dove si trova?",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.5,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Casa nf firmato da didonè",
+          "reciprocal_rank": 1.0,
+          "average_precision": 4.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Proposte commerciali FIS",
+          "reciprocal_rank": 0.5,
+          "average_precision": 0.5,
+          "precision_at_k": {
+            "1": 0.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        },
+        {
+          "query": "Quanto costa la proposta per FIS Group?",
+          "reciprocal_rank": 1.0,
+          "average_precision": 1.0,
+          "precision_at_k": {
+            "1": 1.0,
+            "3": 0.3333333333333333,
+            "5": 0.2,
+            "10": 0.1
+          }
+        }
+      ],
+      "difficulty_analysis": {
+        "easy": {
+          "count": 4,
+          "mrr": 0.5833333333333334,
+          "map": 3.0083333333333333,
+          "p1": 0.5,
+          "p3": 0.25
+        },
+        "medium": {
+          "count": 6,
+          "mrr": 0.25,
+          "map": 0.25,
+          "p1": 0.16666666666666666,
+          "p3": 0.1111111111111111
+        },
+        "hard": {
+          "count": 5,
+          "mrr": 0.5,
+          "map": 1.0333333333333332,
+          "p1": 0.2,
+          "p3": 0.26666666666666666
+        }
+      }
+    }
+  ],
+  "best_alpha": 0.3,
+  "best_mrr": 0.5666666666666667,
+  "improvement_over_baseline": 0.0,
+  "recommendation": "➡️ RACCOMANDAZIONE: Mantenere alpha corrente (0.6). Differenza massima: 0.144"
+}

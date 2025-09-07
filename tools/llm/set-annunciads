@@ -1,0 +1,277 @@
+#!/bin/bash
+set -o pipefail
+
+# --- Configurazioni Iniziali ---
+
+# Definizioni Colori (verranno usate solo se NO_COLOR è false)
+COLOR_RESET='\e[0m'
+COLOR_RED='\e[31m'
+COLOR_GREEN='\e[32m'
+COLOR_BLUE='\e[34m'
+COLOR_YELLOW='\e[33m'
+BOLD='\e[1m'
+
+# Variabili per le opzioni con valori di default
+USE_CLIPBOARD=false
+SAVE_FILE=false
+NO_COLOR=false
+URL=""
+LLM_MODEL="gemini-exp" # Default LLM model
+OUTPUT_FILE="google_ads_output.txt" # Default output file name
+TARGET_LANGUAGE="italiana" # Default language
+CURL_TIMEOUT=20 # Timeout per curl in secondi
+KEYWORDS="" # Parole chiave specificate dall'utente
+
+# --- Funzioni ---
+
+# Funzione per mostrare l'help
+show_help() {
+    echo "Uso: set-annunciads [opzioni] <URL>"
+    echo "Recupera il contenuto di un URL, lo passa a un LLM e genera titoli/descrizioni per annunci Google Ads."
+    echo ""
+    echo "Opzioni:"
+    echo "  -h, --help              Mostra questo messaggio di aiuto."
+    echo "  -c, --clip              Copia l'output negli appunti (richiede xclip o pbcopy)."
+    echo "  -f, --file              Salva l'output in un file (usa -o per specificare il nome)."
+    echo "  -o, --output <file>     Specifica il file dove salvare l'output (default: ${OUTPUT_FILE}). Implica -f."
+    echo "  -m, --model <modello>   Specifica il modello LLM da usare (es. gemini, gpt-4, claude-3-opus... default: ${LLM_MODEL})."
+    echo "  -l, --language <lingua> Specifica la lingua per l'output (default: ${TARGET_LANGUAGE})."
+    echo "  -k, --keywords <testo>  Specifica parole chiave o messaggi di marketing da includere."
+    echo "  --no-color              Disabilita i colori nell'output."
+    echo ""
+    echo "Esempio:"
+    echo "  set-annunciads -c -m gpt-4 -k \"prodotti bio, consegna gratuita\" https://www.example.com"
+    exit 0
+}
+
+# Funzione per gestire gli errori (esce dallo script)
+error() {
+    local message="$1"
+    if [ "$NO_COLOR" = false ]; then
+        echo -e "${COLOR_RED}${BOLD}ERRORE:${COLOR_RESET}${COLOR_RED} $message${COLOR_RESET}" >&2
+    else
+        echo "ERRORE: $message" >&2
+    fi
+    exit 1
+}
+
+# Funzione per i messaggi di info
+info() {
+    local message="$1"
+    if [ "$NO_COLOR" = false ]; then
+        echo -e "${COLOR_BLUE}${BOLD}INFO:${COLOR_RESET}${COLOR_BLUE} $message${COLOR_RESET}"
+    else
+        echo "INFO: $message"
+    fi
+}
+
+# Funzione per i messaggi di avviso (non esce dallo script)
+warning() {
+    local message="$1"
+    if [ "$NO_COLOR" = false ]; then
+        echo -e "${COLOR_YELLOW}${BOLD}ATTENZIONE:${COLOR_RESET}${COLOR_YELLOW} $message${COLOR_RESET}" >&2
+    else
+        echo "ATTENZIONE: $message" >&2
+    fi
+}
+
+# Funzione per verificare i requisiti
+check_requirements() {
+    command -v curl >/dev/null 2>&1 || error "'curl' non è installato. Installalo per continuare."
+    command -v llm >/dev/null 2>&1 || error "'llm' non è installato. Vedi https://llm.datasette.io/ per l'installazione."
+}
+
+# Funzione per copiare negli appunti
+copy_to_clipboard() {
+    local content="$1"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "$content" | pbcopy
+        info "Output copiato negli appunti (macOS)."
+    elif command -v xclip >/dev/null 2>&1; then
+        echo "$content" | xclip -selection clipboard
+        info "Output copiato negli appunti (xclip)."
+    else
+        warning "Nessun comando disponibile per la clipboard (installa 'xclip' su Linux o usa macOS)."
+    fi
+}
+
+# --- Parsing delle Opzioni ---
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -h|--help) show_help ;;
+        -c|--clip) USE_CLIPBOARD=true; shift ;;
+        -f|--file) SAVE_FILE=true; shift ;;
+        -o|--output) SAVE_FILE=true; OUTPUT_FILE="$2"; shift 2 ;; # -o implica -f
+        -m|--model) LLM_MODEL="$2"; shift 2 ;;
+        -l|--language) TARGET_LANGUAGE="$2"; shift 2 ;;
+        -k|--keywords) KEYWORDS="$2"; shift 2 ;;
+        --no-color) NO_COLOR=true; shift ;;
+        -*) error "Opzione non riconosciuta: $1. Usa -h per l'aiuto." ;;
+        *)
+            # Gestisce l'URL come argomento posizionale
+            if [[ -z "$URL" ]]; then
+                URL="$1"
+            else
+                error "URL già specificato ('$URL'). È possibile specificare un solo URL."
+            fi
+            shift
+            ;;
+    esac
+done
+
+# --- Validazioni Input ---
+
+# Verifica che sia stato fornito un URL
+[[ -z "$URL" ]] && error "URL non specificato. Usa -h per vedere l'help."
+
+# Validazione base dell'URL
+if [[ ! "$URL" =~ ^https?:// ]]; then
+    error "URL fornito non sembra valido. Deve iniziare con http:// o https://"
+fi
+
+# Verifica i requisiti software
+check_requirements
+
+# --- Logica Principale ---
+
+# Componi l'URL per r.jina.ai
+JINA_URL="https://r.jina.ai/$URL"
+info "Processando l'URL: $URL (via Jina: $JINA_URL)"
+
+# Recupera il contenuto markdown dall'URL di Jina con timeout
+info "Recupero contenuto (timeout: ${CURL_TIMEOUT}s)..."
+MARKDOWN_CONTENT=$(curl -s --max-time "$CURL_TIMEOUT" --location "$JINA_URL") # Aggiunto --location per seguire redirect
+
+# Verifica se il comando curl ha avuto successo e se c'è contenuto
+curl_exit_code=$?
+if [[ $curl_exit_code -ne 0 ]]; then
+    error "curl ha fallito con codice $curl_exit_code. Impossibile recuperare il contenuto da $JINA_URL."
+fi
+if [[ -z "$MARKDOWN_CONTENT" ]]; then
+    error "Nessun contenuto recuperato da $JINA_URL. L'URL è valido e la pagina non è vuota?"
+fi
+
+# Costruisci il System Prompt
+SYSTEM_PROMPT=$(printf "Agisci come un esperto di Google Ads specializzato nella creazione di titoli e descrizioni di annunci.
+
+Scopo e Obiettivi:
+* Generare titoli e descrizioni efficaci per le campagne Google Ads.
+* Ottimizzare il testo degli annunci per massimizzare il click-through rate (CTR) e il tasso di conversione.
+* Fornire suggerimenti per sitelink e callout pertinenti per migliorare la visibilità degli annunci.
+
+Comportamenti e Regole:
+1. Input Utente: 
+   a) Ricevi un URL di un prodotto o servizio fornito dall'utente.
+   b) %s
+   c) Considera il pubblico target e la proposta di valore unica del prodotto/servizio.
+
+2. Generazione Titoli:
+   a) Crea 20 titoli unici e concisi, ciascuno con un massimo di 30 caratteri.
+   b) Includi parole chiave pertinenti nei titoli in modo naturale.
+   c) Varia i titoli per testare diverse combinazioni di parole chiave e messaggi.
+
+3. Generazione Descrizioni:
+   a) Genera 8 descrizioni dettagliate, ciascuna con un massimo di 90 caratteri.
+   b) Evidenzia i vantaggi e le caratteristiche principali del prodotto/servizio.
+   c) Includi una chiara call-to-action (CTA) nelle descrizioni.
+   d) Crea 3 descrizioni più brevi, ciascuna con un massimo di 60 caratteri, per maggiore flessibilità.
+
+4. Suggerimenti Aggiuntivi:
+   a) Suggerisci almeno 3-5 sitelink pertinenti che indirizzino a pagine specifiche del sito web.
+   b) Proponi almeno 4-6 callout che evidenzino offerte speciali, vantaggi o informazioni chiave dell'azienda.
+
+Tono Generale:
+* Utilizza un linguaggio professionale e orientato al marketing.
+* Sii conciso, chiaro e persuasivo nel testo degli annunci.
+* Concentrati sulla fornitura di valore all'utente finale.
+
+FORMATO OUTPUT RICHIESTO:
+
+TITOLI (max 30 caratteri):
+1. [titolo 1]
+2. [titolo 2]
+...
+
+DESCRIZIONI LUNGHE (max 90 caratteri):
+1. [descrizione 1]
+2. [descrizione 2]
+...
+
+DESCRIZIONI BREVI (max 60 caratteri):
+1. [descrizione 1]
+2. [descrizione 2]
+3. [descrizione 3]
+
+SITELINK SUGGERITI:
+1. [nome sitelink 1]: [breve descrizione]
+...
+
+CALLOUT SUGGERITI:
+1. [callout 1]
+...
+
+IMPORTANTE:
+- Scrivi nella lingua: %s.
+- Per ogni elemento, mostra il conteggio dei caratteri accanto ad esso.
+- Assicurati che i titoli e le descrizioni rispettino i limiti di caratteri indicati." \
+"$(if [[ -n "$KEYWORDS" ]]; then echo "Utilizza queste parole chiave o messaggi di marketing specifici: $KEYWORDS"; else echo "Non sono state fornite parole chiave specifiche, estraile dal contenuto"; fi)" \
+"$TARGET_LANGUAGE")
+
+# Esegui l'analisi con llm
+info "Elaborazione contenuto con LLM (modello: $LLM_MODEL)..."
+OUTPUT=$(echo "$MARKDOWN_CONTENT" | llm -m "$LLM_MODEL" --system "$SYSTEM_PROMPT")
+llm_exit_code=$?
+
+# Verifica se llm ha avuto successo e se l'output sembra valido
+if [[ $llm_exit_code -ne 0 ]]; then
+    error "LLM (comando 'llm') ha fallito con codice $llm_exit_code."
+fi
+if [[ -z "$OUTPUT" ]]; then
+    error "Nessun output generato da LLM. Controlla la configurazione di LLM o il modello."
+fi
+# Controllo euristico: verifica che contenga le sezioni attese
+if ! echo "$OUTPUT" | grep -q "TITOLI" || ! echo "$OUTPUT" | grep -q "DESCRIZIONI"; then
+    warning "L'output di LLM non sembra contenere le sezioni 'TITOLI' e 'DESCRIZIONI' attese. Potrebbe non essere nel formato corretto."
+    # Non usciamo con errore, ma avvisiamo l'utente
+fi
+
+# --- Gestione dell'Output ---
+
+# Salva su file se richiesto
+if [ "$SAVE_FILE" = true ]; then
+    # Usa printf per evitare problemi con output che inizia con "-"
+    printf "%s\n" "$OUTPUT" > "$OUTPUT_FILE"
+    if [[ $? -eq 0 ]]; then
+        info "Output salvato in '$OUTPUT_FILE'"
+    else
+        error "Impossibile scrivere nel file '$OUTPUT_FILE'."
+    fi
+fi
+
+# Copia negli appunti se richiesto
+if [ "$USE_CLIPBOARD" = true ]; then
+    copy_to_clipboard "$OUTPUT"
+fi
+
+# Mostra sempre l'output nel terminale, formattato
+
+# Intestazione
+if [ "$NO_COLOR" = false ]; then
+    echo -e "\n${COLOR_GREEN}${BOLD}=== Annunci Google Ads per: $URL ===${COLOR_RESET}"
+else
+    echo -e "\n=== Annunci Google Ads per: $URL ==="
+fi
+
+# Stampa l'output
+echo "$OUTPUT"
+
+# Footer
+if [ "$NO_COLOR" = false ]; then
+    echo -e "${COLOR_GREEN}${BOLD}============================================${COLOR_RESET}\n"
+else
+    echo -e "============================================\n"
+fi
+
+info "Completato."
+exit 0

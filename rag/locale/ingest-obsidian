@@ -1,0 +1,121 @@
+#!/bin/bash
+
+# Script per l'ingestion della Knowledge Base Obsidian nel sistema RAG locale
+# Utilizzo: ./ingest-obsidian
+
+set -e  # Esci in caso di errore
+
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+
+# Funzione per stampare con colori
+print_header() {
+    echo -e "\n${BLUE}${BOLD}═══════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}${BOLD}  $1${NC}"
+    echo -e "${BLUE}${BOLD}═══════════════════════════════════════════════════════${NC}\n"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_info() {
+    echo -e "${YELLOW}→${NC} $1"
+}
+
+# Header principale
+clear
+print_header "🗂️  RAG Locale - Ingestion Knowledge Base Obsidian"
+
+# Controlla se siamo nella directory corretta
+if [ ! -f "obsidian_ingest.py" ]; then
+    print_error "Errore: obsidian_ingest.py non trovato!"
+    print_info "Assicurati di eseguire questo script dalla directory RAG-locale"
+    exit 1
+fi
+
+# Controlla se l'ambiente virtuale esiste
+if [ ! -d ".venv" ]; then
+    print_error "Ambiente virtuale non trovato!"
+    print_info "Creazione ambiente virtuale in corso..."
+    python3 -m venv .venv
+    print_success "Ambiente virtuale creato"
+fi
+
+# Attiva l'ambiente virtuale
+print_info "Attivazione ambiente virtuale..."
+source .venv/bin/activate
+print_success "Ambiente virtuale attivato"
+
+# Controlla se le dipendenze sono installate
+print_info "Verifica dipendenze..."
+if ! python -c "import langchain" 2>/dev/null; then
+    print_info "Installazione dipendenze in corso..."
+    pip install -r requirements.txt -q
+    print_success "Dipendenze installate"
+else
+    print_success "Dipendenze già installate"
+fi
+
+# Controlla se la directory Obsidian esiste
+OBSIDIAN_PATH="/opt/obsidian/appunti/"
+if [ ! -d "$OBSIDIAN_PATH" ]; then
+    print_error "Directory Obsidian non trovata: $OBSIDIAN_PATH"
+    exit 1
+fi
+
+print_info "Directory Obsidian trovata: ${CYAN}$OBSIDIAN_PATH${NC}"
+
+# Conta i file markdown
+MD_COUNT=$(find "$OBSIDIAN_PATH" -name "*.md" 2>/dev/null | wc -l)
+print_info "File markdown trovati: ${BOLD}$MD_COUNT${NC}"
+
+# Backup dell'indice esistente se presente
+if [ -d "obsidian_index" ]; then
+    BACKUP_NAME="obsidian_index.backup.$(date +%Y%m%d_%H%M%S)"
+    print_info "Backup dell'indice esistente in: $BACKUP_NAME"
+    mv obsidian_index "$BACKUP_NAME"
+fi
+
+# Esegui l'ingestion
+print_header "🚀 Avvio processo di ingestion"
+echo -e "${CYAN}Questo processo potrebbe richiedere alcuni minuti...${NC}\n"
+
+# Esegui lo script Python con output colorato
+python obsidian_ingest.py
+
+# Controlla il risultato
+if [ $? -eq 0 ]; then
+    print_header "✨ Ingestion completata con successo!"
+    
+    # Mostra statistiche se l'indice esiste
+    if [ -d "obsidian_index" ]; then
+        echo -e "\n${BOLD}📊 Statistiche indice:${NC}"
+        print_info "Directory indice: ${CYAN}obsidian_index/${NC}"
+        
+        # Conta i file nell'indice
+        INDEX_FILES=$(ls -1 obsidian_index/ 2>/dev/null | wc -l)
+        print_info "File nell'indice: ${BOLD}$INDEX_FILES${NC}"
+        
+        # Dimensione totale
+        INDEX_SIZE=$(du -sh obsidian_index 2>/dev/null | cut -f1)
+        print_info "Dimensione indice: ${BOLD}$INDEX_SIZE${NC}"
+    fi
+    
+    echo -e "\n${GREEN}${BOLD}Il sistema RAG è ora pronto per essere interrogato!${NC}"
+    echo -e "${CYAN}Usa ${BOLD}./raglocale${NC} ${CYAN}per iniziare a fare domande${NC}\n"
+else
+    print_error "Errore durante l'ingestion!"
+    print_info "Controlla i log per maggiori dettagli"
+    exit 1
+fi

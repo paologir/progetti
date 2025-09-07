@@ -1,0 +1,52 @@
+# R files
+.Rhistory
+.Rdata
+.RData
+.rdata
+*.Rproj
+*.Rproj.user
+.Renviron
+
+# R packages
+packrat/lib*/
+renv/library/
+renv/local/
+renv/cellar/
+
+# Data files
+*.csv
+*.tsv
+*.xlsx
+*.json
+data/
+*.RData
+
+# Plots and outputs
+*.png
+*.pdf
+*.jpeg
+*.jpg
+Rplots.pdf
+plots/
+output/
+
+# Logs and temporary files
+*.log
+*.tmp
+temp/
+tmp/
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude agent files
+.claude/

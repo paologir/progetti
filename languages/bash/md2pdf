@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Funzione per mostrare la sintassi corretta
+show_usage() {
+    echo "Uso: $0 <nome_file_markdown> [nome_file_pdf] [--toc]"
+    echo "  <nome_file_markdown> : Il file markdown da convertire."
+    echo "  [nome_file_pdf]      : Il nome del file PDF di output (opzionale)."
+    echo "  [--toc]              : Se specificato, include la Table of Contents nel PDF."
+    echo "Se non viene fornito il nome del file PDF, verrà utilizzato il nome del file markdown con il suffisso .pdf."
+    exit 1
+}
+
+# Controlla se è stato fornito il nome del file markdown
+if [ -z "$1" ]; then
+    show_usage
+fi
+
+# Assegna il nome del file markdown dalla linea di comando
+input_file="$1"
+
+# Controlla se il file markdown esiste
+if [ ! -f "$input_file" ]; then
+    echo "Errore: Il file $input_file non esiste."
+    exit 1
+fi
+
+# Assegna il nome del file PDF dalla linea di comando, oppure utilizza il nome del file markdown con il suffisso .pdf
+if [ -z "$2" ] || [[ "$2" == "--toc" ]]; then
+    output_file="${input_file%.md}.pdf"
+else
+    output_file="$2"
+fi
+
+# Verifica se il parametro --toc è stato fornito
+include_toc=false
+if [ "$2" == "--toc" ] || [ "$3" == "--toc" ]; then
+    include_toc=true
+fi
+
+# Comando pandoc base
+pandoc_cmd="pandoc \"$input_file\" -o \"$output_file\" --pdf-engine=xelatex --template=\"eisvogel.latex\" -V mainfont=\"DejaVu Serif\" -V monofont=\"DejaVu Sans Mono\""
+
+# Aggiungi --toc se specificato
+if [ "$include_toc" = true ]; then
+    pandoc_cmd="$pandoc_cmd --toc"
+fi
+
+# Esegui il comando pandoc
+eval $pandoc_cmd
+
+# Verifica se il PDF è stato generato correttamente
+if [ $? -eq 0 ]; then
+    echo "Il file PDF è stato generato con successo: $output_file"
+else
+    echo "Errore nella generazione del file PDF."
+fi
+

@@ -1,0 +1,38 @@
+# Compiled object files
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+
+# Executable files
+*.exe
+*.out
+a.out
+
+# Static libraries
+*.a
+*.lib
+
+# Debug files
+*.pdb
+*.dSYM/
+
+# Build directories
+build/
+debug/
+release/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Make files generated
+Makefile.bak

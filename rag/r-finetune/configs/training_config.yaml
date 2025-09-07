@@ -1,0 +1,68 @@
+# Training Configuration for R-LLM Fine-tuning
+
+# Model Configuration
+model:
+  name: "unsloth/gemma-3-270m-it-GGUF"  # 270M params - perfect for our target
+  torch_dtype: "float16"
+  trust_remote_code: true
+
+# LoRA Configuration
+lora:
+  r: 16
+  lora_alpha: 32
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+  lora_dropout: 0.1
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# Quantization Configuration
+quantization:
+  load_in_4bit: true
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_compute_dtype: "float16"
+
+# Training Arguments
+training:
+  output_dir: "./models/r-llm-checkpoints"
+  num_train_epochs: 3
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 2
+  optim: "paged_adamw_32bit"
+  save_steps: 500
+  logging_steps: 25
+  learning_rate: 2e-4
+  weight_decay: 0.001
+  fp16: false
+  bf16: false
+  max_grad_norm: 0.3
+  max_steps: -1
+  warmup_ratio: 0.03
+  group_by_length: true
+  lr_scheduler_type: "cosine"
+  report_to: "tensorboard"
+
+# Dataset Configuration
+dataset:
+  max_seq_length: 512
+  train_dataset_path: "./data/final/train.jsonl"
+  eval_dataset_path: "./data/final/validation.jsonl"
+  dataset_text_field: "text"
+
+# SFT (Supervised Fine-Tuning) Configuration
+sft:
+  max_seq_length: 512
+  packing: false
+  dataset_kwargs:
+    add_special_tokens: false
+    append_concat_token: false
+
+# Evaluation Configuration
+evaluation:
+  eval_steps: 500
+  evaluation_strategy: "steps"
+  save_strategy: "steps"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
