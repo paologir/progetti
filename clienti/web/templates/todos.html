@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Todo List - Clienti CRM{% endblock %}
+
+{% block content %}
+<h1>✅ Gestione Todo</h1>
+
+<!-- Nuovo todo -->
+<details>
+    <summary role="button" class="outline"><strong>➕ Aggiungi Nuovo Todo</strong></summary>
+    
+    <form method="post" action="/todos/add" style="margin-top: 1rem;">
+        <div class="grid">
+            <div>
+                <label for="titolo">Titolo *</label>
+                <input type="text" name="titolo" placeholder="Es: Aggiornare campagne Google Ads" required>
+            </div>
+            
+            <div>
+                <label for="cliente_id">Cliente (opzionale)</label>
+                <select name="cliente_id">
+                    <option value="">Nessun cliente specifico</option>
+                    {% for cliente in clienti %}
+                    <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div>
+                <label for="priorita">Priorità</label>
+                <select name="priorita">
+                    <option value="0">🟡 Normale</option>
+                    <option value="1">🔴 Alta</option>
+                    <option value="-1">🟢 Bassa</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="scadenza">Scadenza (opzionale)</label>
+                <input type="date" name="scadenza">
+            </div>
+        </div>
+        
+        <label for="descrizione">Descrizione (opzionale)</label>
+        <textarea name="descrizione" placeholder="Dettagli aggiuntivi sul task..." rows="2"></textarea>
+        
+        <button type="submit" style="width: 100%;">➕ Aggiungi Todo</button>
+    </form>
+</details>
+
+<!-- Lista todo aperti -->
+<h2>📋 Todo Aperti ({{ todos|length }})</h2>
+
+{% if todos %}
+<div class="table-responsive">
+    <table class="table-compact">
+        <thead>
+            <tr>
+                <th>Priorità</th>
+                <th>Titolo</th>
+                <th>Cliente</th>
+                <th>Scadenza</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for todo in todos %}
+        <tr {% if todo.is_overdue %}class="overdue"{% endif %}>
+            <td>
+                <span class="priority-{% if todo.priorita == 1 %}high{% elif todo.priorita == -1 %}low{% else %}normal{% endif %}">
+                    {{ todo.priorita_text }}
+                </span>
+            </td>
+            <td>
+                <strong>{{ todo.titolo }}</strong>
+                {% if todo.descrizione %}
+                    <br><small>{{ todo.descrizione }}</small>
+                {% endif %}
+            </td>
+            <td>
+                {% if todo.cliente %}
+                    <a href="/clienti/{{ todo.cliente.id }}">{{ todo.cliente.nome }}</a>
+                {% else %}
+                    <small><em>Generale</em></small>
+                {% endif %}
+            </td>
+            <td>
+                {% if todo.scadenza %}
+                    <strong>{{ todo.scadenza.strftime('%d/%m/%Y') }}</strong>
+                    {% if todo.is_overdue %}
+                        <br><small style="color: #dc3545;">
+                            {% set giorni_ritardo = (today - todo.scadenza).days %}
+                            {{ giorni_ritardo }} giorni di ritardo
+                        </small>
+                    {% elif todo.scadenza == today %}
+                        <br><small style="color: #ffc107;">Scade oggi</small>
+                    {% elif (today - todo.scadenza).days >= -3 and (today - todo.scadenza).days < 0 %}
+                        <br><small style="color: #fd7e14;">Scade presto</small>
+                    {% endif %}
+                {% else %}
+                    <small>-</small>
+                {% endif %}
+            </td>
+            <td>
+                {% if todo.is_overdue %}
+                    🔴 <strong>In ritardo</strong>
+                {% elif todo.scadenza == today %}
+                    🟡 <strong>Oggi</strong>
+                {% else %}
+                    ⏳ Aperto
+                {% endif %}
+            </td>
+            <td>
+                <form method="post" action="/todos/{{ todo.id }}/complete" style="display: inline;">
+                    <button type="submit" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="return confirm('Completare questo todo?')">
+                        ✅ Completa
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Riassunto -->
+{% set overdue_count = todos | selectattr('is_overdue') | list | length %}
+{% set today_count = todos | selectattr('scadenza', 'equalto', today) | list | length %}
+{% set high_priority_count = todos | selectattr('priorita', 'equalto', 1) | list | length %}
+
+<div class="dashboard-grid" style="margin-top: 1rem;">
+    <div class="stat-card">
+        <span class="stat-number" style="color: #dc3545;">{{ overdue_count }}</span>
+        <div class="stat-label">🔴 In Ritardo</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number" style="color: #ffc107;">{{ today_count }}</span>
+        <div class="stat-label">📅 Scadono Oggi</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number" style="color: #fd7e14;">{{ high_priority_count }}</span>
+        <div class="stat-label">🔥 Alta Priorità</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number">{{ todos|length }}</span>
+        <div class="stat-label">📋 Totali Aperti</div>
+    </div>
+</div>
+
+{% else %}
+<div class="alert-info">
+    <strong>🎉 Nessun todo aperto!</strong>
+    <br>Ottimo lavoro! Tutti i task sono stati completati.
+</div>
+{% endif %}
+
+<!-- Note informative -->
+<hr>
+<details>
+    <summary><strong>📝 Gestione Todo</strong></summary>
+    <div class="grid">
+        <div>
+            <h4>Funzioni Web</h4>
+            <ul>
+                <li>✅ Visualizzazione todo aperti</li>
+                <li>✅ Aggiunta nuovo todo</li>
+                <li>✅ Completamento todo</li>
+                <li>✅ Alert overdue e scadenze</li>
+                <li>❌ Modifica/eliminazione (solo CLI)</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Funzioni CLI Complete</h4>
+            <ul>
+                <li><code>clienti todo add</code> - Con wizard interattivo</li>
+                <li><code>clienti todo list --overdue</code> - Filtri avanzati</li>
+                <li><code>clienti todo oggi</code> - Scadenze oggi</li>
+                <li><code>clienti todo cliente "Nome"</code> - Per cliente</li>
+                <li><code>clienti todo edit 5 --priorita alta</code></li>
+                <li><code>clienti todo delete 12</code></li>
+            </ul>
+        </div>
+    </div>
+    <p><small><em>Per gestione completa dei todo utilizza l'interfaccia CLI</em></small></p>
+</details>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-imposta data di scadenza default (tra 7 giorni)
+    document.addEventListener('DOMContentLoaded', function() {
+        const scadenzaInput = document.querySelector('input[name="scadenza"]');
+        if (scadenzaInput) {
+            const defaultDate = new Date();
+            defaultDate.setDate(defaultDate.getDate() + 7);
+            // Non impostiamo automaticamente per lasciare libera scelta
+        }
+    });
+    
+    // Conferma completamento todo
+    document.querySelectorAll('form[action*="/complete"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const todoTitle = this.closest('tr').querySelector('td:nth-child(2) strong').textContent;
+            if (!confirm(`Completare il todo "${todoTitle}"?`)) {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Evidenzia todo urgenti
+    document.querySelectorAll('tr.overdue').forEach(row => {
+        row.style.animation = 'pulse 2s infinite';
+    });
+    
+    // Ordina automaticamente per priorità e scadenza
+    function sortTodos() {
+        const table = document.querySelector('table tbody');
+        if (!table) return;
+        
+        const rows = Array.from(table.querySelectorAll('tr'));
+        rows.sort((a, b) => {
+            // Prima i in ritardo
+            const aOverdue = a.classList.contains('overdue');
+            const bOverdue = b.classList.contains('overdue');
+            if (aOverdue && !bOverdue) return -1;
+            if (!aOverdue && bOverdue) return 1;
+            
+            // Poi per priorità (alta = 1, normale = 0, bassa = -1)
+            const aPriority = a.querySelector('.priority-high') ? 2 : 
+                            a.querySelector('.priority-normal') ? 1 : 0;
+            const bPriority = b.querySelector('.priority-high') ? 2 : 
+                            b.querySelector('.priority-normal') ? 1 : 0;
+            
+            return bPriority - aPriority;
+        });
+        
+        // Non riordiniamo automaticamente per preservare l'ordine del server
+    }
+    
+    // CSS animation per pulse
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0% { background-color: rgba(220, 53, 69, 0.1); }
+            50% { background-color: rgba(220, 53, 69, 0.2); }
+            100% { background-color: rgba(220, 53, 69, 0.1); }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

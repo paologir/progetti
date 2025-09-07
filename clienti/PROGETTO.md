@@ -4,7 +4,7 @@
 
 Sistema di gestione clienti minimalista per consulente digital marketing freelance. Interfaccia CLI-first con supporto web per gestire anagrafiche, time tracking, scadenze fatturazione e todo list.
 
-### 📊 Stato Attuale (7 settembre 2025)
+### 📊 Stato Attuale (7 settembre 2025 - Sprint 7 Completato)
 
 **✅ SPRINT 1 COMPLETATO** - Sistema base funzionante:
 - 🗄️ Database SQLite inizializzato con 54 clienti importati
@@ -45,7 +45,24 @@ Sistema di gestione clienti minimalista per consulente digital marketing freelan
 - 🎯 KPI e progress bars verso obiettivi mensili
 - 📊 4 nuovi comandi: stats, report, alerts, dashboard avanzato
 
-**⏳ PROSSIMO**: Sprint 6 - Web Interface
+**✅ SPRINT 6 COMPLETATO** - Web Interface operativa:
+- 🌐 FastAPI backend completo con routing REST
+- 📱 Dashboard web responsive con Pico.css + HTMX
+- 👥 Interfaccia clienti con ricerca/filtri e dettaglio completo
+- ⏱️ Timer web con tracking live e sessioni recenti
+- ✅ Gestione todo web con priorità e alert scadenze
+- 🎨 Design system professionale con separazioni grafiche
+- 📊 KPI cards colorate e sezioni strutturate
+
+**✅ SPRINT 7 COMPLETATO** - Import/Export avanzato:
+- 📝 Export Obsidian vault completo (54 clienti + dashboard + template)
+- 💾 Sistema backup automatico con cleanup e ripristino
+- 📋 Import/Export CSV clienti con dry-run e controllo duplicati
+- 🔄 Sincronizzazione migliorata con database esistente
+- 📑 Template personalizzabili per Obsidian (cliente/progetto/meeting)
+- 🤖 Backup automatico ogni 24h + 7 comandi backup avanzati
+
+**⏳ PROSSIMO**: Sprint 8 - Polish & Documentation
 
 ### 🖥️ Comandi Attualmente Disponibili
 
@@ -112,9 +129,24 @@ clienti log export              # Export CSV per fatturazione
 clienti log export --cliente "Nome" --mese 9  # Export filtrato
 clienti log fatturato 12        # Marca intervento come fatturato
 
+# Export & Import (✅ NUOVO Sprint 7)
+clienti export obsidian --output /path/to/vault/  # Export completo Obsidian
+clienti export obsidian --output /vault/ --completed  # Include todo completati
+clienti export client "Nome" --output file.md  # Export singolo cliente
+clienti export csv --output clienti.csv       # Export tutti clienti CSV
+clienti export import-csv file.csv --dry-run   # Import CSV con preview
+clienti export import-csv file.csv --no-dry-run # Import CSV reale
+
+# Backup avanzato (✅ NUOVO Sprint 7)
+clienti backup create           # Crea backup + cleanup automatico
+clienti backup list             # Lista backup con età e dimensioni
+clienti backup restore FILE     # Ripristina da backup specifico
+clienti backup cleanup --keep 5 # Pulizia backup (mantieni 5)
+clienti backup auto            # Backup automatico se necessario
+
 # Utilità
 clienti import                  # Importa da clienti.json
-clienti backup                  # Backup database
+clienti backup                  # Backup database (comando legacy)
 ```
 
 ## 📋 Requisiti Principali
@@ -487,7 +519,7 @@ clienti alerts                       # Alert todo/scadenze overdue
 # ┏━━━━━━━━┳━━━━━┳━━━━━━━━━━━┳━━━━━━━━┓
 # ┃ Mese   ┃ Ore ┃ Fatturato ┃  €/ora ┃
 # ┡━━━━━━━━╇━━━━━╇━━━━━━━━━━━╇━━━━━━━━┩
-# │ Jan    │ 145 │     €7250 │    €50 │
+# │ Jan    │ 145 │     €7250 │    │50 │
 # │ Feb    │ 160 │     €8000 │    €50 │
 # │ Mar    │ 155 │     €7750 │    €50 │
 # │ TOTALE │ 460 │    €23000 │    €50 │
@@ -498,6 +530,29 @@ clienti alerts                       # Alert todo/scadenze overdue
 #  1: ████████████████████████████████████████████ 145.0
 #  2: ██████████████████████████████████████████████████ 160.0
 #  3: ████████████████████████████████████████████████ 155.0
+
+# Output esempio backup list:
+# ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━┓
+# ┃ Data/Ora         ┃ File                              ┃ Dimensione ┃ Età ┃
+# ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━┩
+# │ 07/09/2025 17:55 │ clienti_backup_20250907_175456.db │ 0.0 MB     │ 1h  │
+# │ 06/09/2025 09:30 │ clienti_backup_20250906_093015.db │ 0.0 MB     │ 1d  │
+# └──────────────────┴───────────────────────────────────┴────────────┴─────┘
+
+# Output esempio export obsidian:
+# 📁 Export Obsidian vault in: /path/to/vault
+# Export clienti...   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:02
+# Export reports...   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+# Export templates... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+# ✅ Export Obsidian completato!
+# 
+# Struttura generata:
+# vault/
+# ├── README.md              # Indice principale con collegamenti
+# ├── Clienti/               # 54 schede clienti in Markdown
+# ├── Reports/               # Dashboard e statistiche
+# ├── Templates/             # Template personalizzabili
+# └── Progetti/              # Spazio per progetti futuri
 ```
 
 ### Import/Export e Backup
@@ -637,12 +692,17 @@ python-multipart>=0.0.6
 - [ ] Timer web interface
 - [ ] Calendario scadenze
 
-### Sprint 7: Import/Export (1-2 giorni)
-- [ ] Export Markdown per Obsidian
-- [ ] Backup automatico database
-- [ ] Import CSV/Excel clienti
-- [ ] Sincronizzazione con aiutofatture esistente
-- [ ] Template personalizzabili
+### ✅ Sprint 7: Import/Export (COMPLETATO - 7 settembre 2025)
+- [x] Export Markdown per Obsidian con vault completo
+- [x] Sistema backup automatico avanzato con cleanup
+- [x] Import/Export CSV clienti con dry-run e controllo duplicati
+- [x] Sincronizzazione migliorata con database esistente
+- [x] Template personalizzabili per Obsidian (cliente/progetto/meeting)
+- [x] **EXTRA**: 7 comandi backup avanzati (create/list/restore/cleanup/auto)
+- [x] **EXTRA**: Export singolo cliente in Markdown
+- [x] **EXTRA**: Backup automatico ogni 24h all'avvio app
+- [x] **EXTRA**: Struttura Obsidian vault con 4 directory (Clienti/Reports/Templates/Progetti)
+- [x] **EXTRA**: 54 clienti esportati + dashboard + statistiche complete
 
 ### Sprint 8: Polish & Documentation (1 giorno)
 - [ ] Configurazione via config.toml

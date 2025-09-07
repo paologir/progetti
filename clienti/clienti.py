@@ -16,13 +16,14 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from core.database import init_database, get_database_info
 from core.models import Cliente
-from core.utils import import_clienti_json, backup_database
+from core.utils import import_clienti_json, backup_database, list_backups, restore_backup, cleanup_old_backups, auto_backup_if_enabled
 from cli.clienti import list_clients, show_client, add_client
 from cli.time import start_timer, stop_timer, timer_status, show_today_hours, show_week_report, show_client_report, show_unbilled, export_timesheet_csv
 from cli.scadenze import show_upcoming_deadlines, add_scadenza, list_scadenze, show_invoice_details, mark_as_issued, mark_as_paid, process_recurring_invoices, aggiorna_scadenza
 from cli.todo import add_todo, list_todos, show_today_todos, show_week_todos, show_client_todos, mark_todo_done, edit_todo, delete_todo
 from cli.interventi import add_intervento, list_interventi, show_client_timeline, export_interventi_csv, mark_intervento_billed, show_today_summary
 from cli.dashboard import show_advanced_dashboard, show_stats_command, show_monthly_report, show_alerts
+from cli.export import export_obsidian_vault, export_cliente_markdown, export_csv_clienti, import_csv_clienti
 
 console = Console()
 app = typer.Typer(
@@ -38,16 +39,23 @@ time_app = typer.Typer(name="time", help="Time tracking")
 todo_app = typer.Typer(name="todo", help="Todo list")
 scadenze_app = typer.Typer(name="scadenze", help="Scadenze fatturazione")
 log_app = typer.Typer(name="log", help="Log interventi")
+export_app = typer.Typer(name="export", help="Export dati")
+backup_app = typer.Typer(name="backup", help="Gestione backup")
 
 app.add_typer(client_app, name="client")
 app.add_typer(time_app, name="time") 
 app.add_typer(todo_app, name="todo")
 app.add_typer(scadenze_app, name="scadenze")
 app.add_typer(log_app, name="log")
+app.add_typer(export_app, name="export")
+app.add_typer(backup_app, name="backup")
 
 @app.callback(invoke_without_command=True)
 def main_callback(ctx: typer.Context):
     """Callback principale - mostra dashboard se nessun comando"""
+    # Auto backup on startup (silent)
+    auto_backup_if_enabled()
+    
     if ctx.invoked_subcommand is None:
         # Nessun comando specificato, mostra dashboard
         show_dashboard()
@@ -372,6 +380,103 @@ def alerts_command():
     """Mostra alert e promemoria importanti"""
     show_alerts()
 
+# === EXPORT COMMANDS ===
+
+@export_app.command("obsidian")
+def export_obsidian(
+    output: str = typer.Option(..., "--output", "-o", help="Directory output Obsidian vault"),
+    include_completed: bool = typer.Option(False, "--completed", help="Includi todo completati")
+):
+    """Export completo per Obsidian vault"""
+    if export_obsidian_vault(output, include_completed):
+        console.print("🎉 Export Obsidian completato!", style="green")
+    else:
+        raise typer.Exit(1)
+
+@export_app.command("client")
+def export_single_client(
+    cliente: str = typer.Argument(..., help="Nome cliente da esportare"),
+    output: Optional[str] = typer.Option(None, "--output", "-o", help="File output (.md)")
+):
+    """Export singolo cliente in Markdown"""
+    if export_cliente_markdown(cliente, output):
+        console.print("✅ Cliente esportato con successo!", style="green")
+    else:
+        raise typer.Exit(1)
+
+@export_app.command("csv")
+def export_clients_csv(
+    output: str = typer.Option("clienti_export.csv", "--output", "-o", help="File output CSV")
+):
+    """Export tutti i clienti in formato CSV"""
+    if export_csv_clienti(output):
+        console.print("📋 Export CSV completato!", style="green")
+    else:
+        raise typer.Exit(1)
+
+@export_app.command("import-csv")
+def import_clients_csv(
+    input_file: str = typer.Argument(..., help="File CSV da importare"),
+    dry_run: bool = typer.Option(True, "--dry-run/--no-dry-run", help="Simulazione import")
+):
+    """Import clienti da file CSV"""
+    if import_csv_clienti(input_file, dry_run):
+        if dry_run:
+            console.print("🔍 Dry run completato - usa --no-dry-run per importare", style="blue")
+        else:
+            console.print("📥 Import completato!", style="green")
+    else:
+        raise typer.Exit(1)
+
+# === BACKUP COMMANDS ===
+
+@backup_app.command("create")
+def backup_create():
+    """Crea backup del database"""
+    console.print("💾 Creazione backup database...", style="blue")
+    backup_path = backup_database()
+    if backup_path:
+        cleanup_old_backups()
+        console.print("✅ Backup completato!", style="green")
+    else:
+        raise typer.Exit(1)
+
+@backup_app.command("list")
+def backup_list():
+    """Lista tutti i backup disponibili"""
+    list_backups()
+
+@backup_app.command("restore")
+def backup_restore(
+    backup_file: str = typer.Argument(..., help="File backup da ripristinare")
+):
+    """Ripristina database da backup"""
+    # If only filename provided, look in backup directory
+    if not backup_file.startswith('/'):
+        backup_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "backups")
+        backup_file = os.path.join(backup_dir, backup_file)
+    
+    if restore_backup(backup_file):
+        console.print("✅ Ripristino completato!", style="green")
+    else:
+        raise typer.Exit(1)
+
+@backup_app.command("cleanup")
+def backup_cleanup(
+    keep: int = typer.Option(10, "--keep", help="Numero di backup da mantenere")
+):
+    """Rimuovi backup vecchi"""
+    console.print(f"🗑️  Pulizia backup (mantieni {keep})...", style="blue")
+    cleanup_old_backups(keep)
+    console.print("✅ Pulizia completata!", style="green")
+
+@backup_app.command("auto")
+def backup_auto():
+    """Esegui backup automatico se necessario"""
+    console.print("🤖 Controllo backup automatico...", style="blue")
+    auto_backup_if_enabled()
+    console.print("✅ Controllo completato!", style="green")
+
 @app.command("import") 
 def import_data(
     file_path: str = typer.Option(
@@ -391,8 +496,9 @@ def import_data(
 
 @app.command("backup")
 def create_backup():
-    """Crea backup del database"""
+    """Crea backup del database (comando legacy)"""
     console.print("💾 Creazione backup database...", style="blue")
+    console.print("ℹ️  Usa 'clienti backup create' per funzionalità avanzate", style="yellow")
     backup_path = backup_database()
     if backup_path:
         console.print("✅ Backup completato!", style="green")

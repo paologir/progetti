@@ -104,7 +104,7 @@ def import_clienti_json(file_path: str) -> bool:
     finally:
         db.close()
 
-def backup_database(backup_path: str = None) -> str:
+def backup_database(backup_path: str = None, silent: bool = False) -> str:
     """
     Create a backup of the database
     """
@@ -117,17 +117,161 @@ def backup_database(backup_path: str = None) -> str:
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database.db")
     
     if not os.path.exists(db_path):
-        console.print("❌ Database non trovato", style="red")
+        if not silent:
+            console.print("❌ Database non trovato", style="red")
         return ""
     
     try:
         shutil.copy2(db_path, backup_path)
         size_mb = os.path.getsize(backup_path) / (1024 * 1024)
-        console.print(f"✅ Backup creato: {backup_path} ({size_mb:.1f} MB)", style="green")
+        if not silent:
+            console.print(f"✅ Backup creato: {backup_path} ({size_mb:.1f} MB)", style="green")
         return backup_path
     except Exception as e:
-        console.print(f"❌ Errore creazione backup: {e}", style="red")
+        if not silent:
+            console.print(f"❌ Errore creazione backup: {e}", style="red")
         return ""
+
+
+def cleanup_old_backups(max_backups: int = 10):
+    """Remove old backup files, keeping only the most recent ones"""
+    backup_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "backups")
+    
+    if not os.path.exists(backup_dir):
+        return
+    
+    # Get all backup files
+    backup_files = []
+    for filename in os.listdir(backup_dir):
+        if filename.startswith("clienti_backup_") and filename.endswith(".db"):
+            filepath = os.path.join(backup_dir, filename)
+            backup_files.append((filepath, os.path.getmtime(filepath)))
+    
+    # Sort by modification time (newest first)
+    backup_files.sort(key=lambda x: x[1], reverse=True)
+    
+    # Remove old backups
+    removed_count = 0
+    for filepath, _ in backup_files[max_backups:]:
+        try:
+            os.remove(filepath)
+            removed_count += 1
+        except Exception as e:
+            console.print(f"❌ Errore rimozione backup {filepath}: {e}", style="red")
+    
+    if removed_count > 0:
+        console.print(f"🗑️  Rimossi {removed_count} backup vecchi", style="blue")
+
+
+def auto_backup_if_enabled():
+    """Perform automatic backup if enabled in configuration"""
+    try:
+        auto_backup = get_config_value("backup_auto", "true")
+        if auto_backup.lower() in ["true", "1", "yes"]:
+            # Check if last backup was more than 24 hours ago
+            backup_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "backups")
+            if os.path.exists(backup_dir):
+                backup_files = []
+                for filename in os.listdir(backup_dir):
+                    if filename.startswith("clienti_backup_") and filename.endswith(".db"):
+                        filepath = os.path.join(backup_dir, filename)
+                        backup_files.append((filepath, os.path.getmtime(filepath)))
+                
+                if backup_files:
+                    # Get most recent backup
+                    backup_files.sort(key=lambda x: x[1], reverse=True)
+                    last_backup_time = backup_files[0][1]
+                    hours_since_backup = (datetime.now().timestamp() - last_backup_time) / 3600
+                    
+                    if hours_since_backup < 24:
+                        return  # Backup recent, skip
+            
+            # Create backup
+            backup_path = backup_database(silent=True)
+            if backup_path:
+                cleanup_old_backups()
+    except Exception as e:
+        # Silent fail for auto backup
+        pass
+
+
+def list_backups():
+    """List all available backups"""
+    backup_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "backups")
+    
+    if not os.path.exists(backup_dir):
+        console.print("📁 Directory backup non esistente", style="yellow")
+        return []
+    
+    backup_files = []
+    for filename in os.listdir(backup_dir):
+        if filename.startswith("clienti_backup_") and filename.endswith(".db"):
+            filepath = os.path.join(backup_dir, filename)
+            stat = os.stat(filepath)
+            backup_files.append({
+                'path': filepath,
+                'filename': filename,
+                'size': stat.st_size,
+                'modified': datetime.fromtimestamp(stat.st_mtime)
+            })
+    
+    # Sort by modification time (newest first)
+    backup_files.sort(key=lambda x: x['modified'], reverse=True)
+    
+    if not backup_files:
+        console.print("📁 Nessun backup trovato", style="yellow")
+        return []
+    
+    from rich.table import Table
+    table = Table(title="💾 Backup Disponibili")
+    table.add_column("Data/Ora", style="cyan")
+    table.add_column("File", style="white")
+    table.add_column("Dimensione", style="green")
+    table.add_column("Età", style="yellow")
+    
+    now = datetime.now()
+    for backup in backup_files:
+        age_delta = now - backup['modified']
+        if age_delta.days > 0:
+            age_str = f"{age_delta.days}d"
+        elif age_delta.seconds > 3600:
+            age_str = f"{age_delta.seconds // 3600}h"
+        else:
+            age_str = f"{age_delta.seconds // 60}m"
+        
+        size_mb = backup['size'] / (1024 * 1024)
+        table.add_row(
+            backup['modified'].strftime("%d/%m/%Y %H:%M"),
+            backup['filename'],
+            f"{size_mb:.1f} MB",
+            age_str
+        )
+    
+    console.print(table)
+    return backup_files
+
+
+def restore_backup(backup_path: str) -> bool:
+    """Restore database from backup"""
+    if not os.path.exists(backup_path):
+        console.print(f"❌ Backup non trovato: {backup_path}", style="red")
+        return False
+    
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database.db")
+    
+    # Create backup of current database first
+    if os.path.exists(db_path):
+        current_backup = backup_database(silent=True)
+        if current_backup:
+            console.print(f"💾 Backup corrente salvato: {current_backup}", style="blue")
+    
+    try:
+        shutil.copy2(backup_path, db_path)
+        console.print(f"✅ Database ripristinato da: {backup_path}", style="green")
+        return True
+    except Exception as e:
+        console.print(f"❌ Errore ripristino: {e}", style="red")
+        return False
 
 def get_config_value(key: str, default: Any = None) -> Any:
     """Get configuration value"""

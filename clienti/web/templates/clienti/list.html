@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Clienti - Clienti CRM{% endblock %}
+
+{% block content %}
+<h1>👥 Gestione Clienti</h1>
+
+<!-- Filtri e ricerca -->
+<div class="grid">
+    <div>
+        <form method="get">
+            <fieldset role="group">
+                <input type="search" name="search" placeholder="Cerca cliente..." value="{{ search }}" />
+                <select name="stato">
+                    <option value="tutti" {% if stato == 'tutti' %}selected{% endif %}>Tutti gli stati</option>
+                    <option value="attivo" {% if stato == 'attivo' %}selected{% endif %}>Attivi</option>
+                    <option value="prospect" {% if stato == 'prospect' %}selected{% endif %}>Prospect</option>
+                    <option value="pausa" {% if stato == 'pausa' %}selected{% endif %}>In pausa</option>
+                    <option value="archiviato" {% if stato == 'archiviato' %}selected{% endif %}>Archiviati</option>
+                </select>
+                <button type="submit">🔍</button>
+            </fieldset>
+        </form>
+    </div>
+    <div>
+        <p><strong>{{ clienti|length }} clienti</strong> trovati</p>
+    </div>
+</div>
+
+<!-- Lista clienti -->
+{% if clienti %}
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Stato</th>
+                <th>P.IVA</th>
+                <th>Città</th>
+                <th>Tariffa/h</th>
+                <th>Tags</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for cliente in clienti %}
+        <tr>
+            <td>
+                <strong><a href="/clienti/{{ cliente.id }}">{{ cliente.nome }}</a></strong>
+            </td>
+            <td>
+                {% if cliente.stato == 'attivo' %}
+                    <span style="color: #28a745;">🟢 Attivo</span>
+                {% elif cliente.stato == 'prospect' %}
+                    <span style="color: #ffc107;">🟡 Prospect</span>
+                {% elif cliente.stato == 'pausa' %}
+                    <span style="color: #6c757d;">⏸️ Pausa</span>
+                {% elif cliente.stato == 'archiviato' %}
+                    <span style="color: #dc3545;">📦 Archiviato</span>
+                {% else %}
+                    {{ cliente.stato }}
+                {% endif %}
+            </td>
+            <td>
+                <small>{{ cliente.piva or '-' }}</small>
+            </td>
+            <td>
+                <small>{{ cliente.citta or '-' }}</small>
+            </td>
+            <td>
+                €{{ cliente.tariffa_oraria|int }}/h
+            </td>
+            <td>
+                {% if cliente.tags_list %}
+                    {% for tag in cliente.tags_list[:2] %}
+                        <small class="tag">{{ tag }}</small>
+                    {% endfor %}
+                    {% if cliente.tags_list|length > 2 %}
+                        <small>+{{ cliente.tags_list|length - 2 }}</small>
+                    {% endif %}
+                {% else %}
+                    <small>-</small>
+                {% endif %}
+            </td>
+            <td>
+                <a href="/clienti/{{ cliente.id }}" role="button" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Dettagli</a>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert-info">
+    <strong>Nessun cliente trovato</strong>
+    {% if search %}
+        con i filtri specificati: "<em>{{ search }}</em>" ({{ stato }})
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Note informative -->
+<hr>
+<details>
+    <summary><strong>📝 Gestione Clienti</strong></summary>
+    <div class="grid">
+        <div>
+            <h4>Funzioni Web</h4>
+            <ul>
+                <li>✅ Visualizzazione lista clienti</li>
+                <li>✅ Ricerca e filtri</li>
+                <li>✅ Dettaglio cliente</li>
+                <li>❌ Aggiunta/modifica (solo CLI)</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Gestione via CLI</h4>
+            <ul>
+                <li><code>clienti client add</code> - Nuovo cliente</li>
+                <li><code>clienti client edit "Nome"</code> - Modifica</li>
+                <li><code>clienti client show "Nome"</code> - Dettagli</li>
+                <li><code>clienti client list --help</code> - Opzioni</li>
+            </ul>
+        </div>
+    </div>
+    <p><small><em>Per operazioni CRUD complete utilizza l'interfaccia CLI</em></small></p>
+</details>
+
+<style>
+.tag {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    margin-right: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    table {
+        font-size: 0.75rem;
+    }
+    
+    .table-responsive {
+        overflow-x: scroll;
+    }
+    
+    th:nth-child(3),
+    td:nth-child(3),
+    th:nth-child(4),
+    td:nth-child(4),
+    th:nth-child(6),
+    td:nth-child(6) {
+        display: none;
+    }
+}
+</style>
+
+{% endblock %}

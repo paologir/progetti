@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Clienti CRM{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>📊 Dashboard CRM</h1>
+    <p class="dashboard-subtitle">Panoramica attività e KPI principali</p>
+</div>
+
+<!-- Sezione Timer (se attivo) -->
+{% if timer_attivo %}
+<section class="dashboard-section timer-section">
+    <div class="section-header">
+        <h2>⏱️ Timer in Corso</h2>
+    </div>
+    <div class="timer-active-card">
+        <div class="timer-info">
+            <div class="timer-client">{{ timer_attivo.cliente.nome }}</div>
+            <div class="timer-task">{{ timer_attivo.descrizione }}</div>
+        </div>
+        <div class="timer-display" id="timer-status" hx-get="/api/timer/status" hx-trigger="load, every 1s" hx-swap="innerHTML">
+            <div class="timer-duration">Caricamento...</div>
+        </div>
+        <form method="post" action="/timer/stop" class="timer-actions">
+            <button type="submit" class="button-stop">⏹️ Ferma Timer</button>
+        </form>
+    </div>
+</section>
+{% endif %}
+
+<!-- Sezione KPI -->
+<section class="dashboard-section kpi-section">
+    <div class="section-header">
+        <h2>📈 Panoramica Mensile</h2>
+        <small>{{ today.strftime('%B %Y') }}</small>
+    </div>
+    <div class="kpi-grid">
+        <div class="kpi-card kpi-primary">
+            <div class="kpi-icon">👥</div>
+            <div class="kpi-content">
+                <div class="kpi-number">{{ clienti_count }}</div>
+                <div class="kpi-label">Clienti Attivi</div>
+                <div class="kpi-detail">{{ clienti_total }} totali</div>
+            </div>
+        </div>
+        
+        <div class="kpi-card kpi-success">
+            <div class="kpi-icon">⏱️</div>
+            <div class="kpi-content">
+                <div class="kpi-number">{{ ore_mese }}h</div>
+                <div class="kpi-label">Ore Lavorate</div>
+                <div class="kpi-detail">questo mese</div>
+            </div>
+        </div>
+        
+        <div class="kpi-card kpi-info">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-content">
+                <div class="kpi-number">€{{ fatturato_mese|int }}</div>
+                <div class="kpi-label">Fatturato</div>
+                <div class="kpi-detail">stimato</div>
+            </div>
+        </div>
+        
+        <div class="kpi-card {% if todos_overdue > 0 %}kpi-warning{% else %}kpi-neutral{% endif %}">
+            <div class="kpi-icon">✅</div>
+            <div class="kpi-content">
+                <div class="kpi-number">{{ todos_oggi + todos_overdue }}</div>
+                <div class="kpi-label">Todo Urgenti</div>
+                <div class="kpi-detail">{% if todos_overdue > 0 %}{{ todos_overdue }} in ritardo{% else %}sotto controllo{% endif %}</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sezione Alert -->
+{% if todos_overdue > 0 or scadenze_prossime|length > 0 %}
+<section class="dashboard-section alerts-section">
+    <div class="section-header">
+        <h2>🚨 Alert & Priorità</h2>
+        <small>Richiede attenzione immediata</small>
+    </div>
+    <div class="alerts-container">
+        {% if todos_overdue > 0 %}
+        <div class="alert-card alert-danger">
+            <div class="alert-icon">🔴</div>
+            <div class="alert-content">
+                <div class="alert-title">Todo in Ritardo</div>
+                <div class="alert-message">{{ todos_overdue }} task scaduti</div>
+            </div>
+            <div class="alert-action">
+                <a href="/todos" class="button-alert">Gestisci →</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if scadenze_prossime|length > 0 %}
+        <div class="alert-card alert-warning">
+            <div class="alert-icon">💰</div>
+            <div class="alert-content">
+                <div class="alert-title">Scadenze Imminenti</div>
+                <div class="alert-message">{{ scadenze_prossime|length }} nei prossimi 7 giorni</div>
+                <div class="alert-details">
+                    {% for scadenza in scadenze_prossime[:2] %}
+                        <div class="alert-item">{{ scadenza.data_scadenza.strftime('%d/%m') }} - {{ scadenza.cliente.nome }}</div>
+                    {% endfor %}
+                    {% if scadenze_prossime|length > 2 %}
+                        <div class="alert-item"><em>+{{ scadenze_prossime|length - 2 }} altre</em></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="alert-action">
+                <a href="#scadenze" class="button-alert">Vedi →</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Sezione Attività Oggi -->
+<section class="dashboard-section activity-section">
+    <div class="section-header">
+        <h2>📅 Attività di Oggi</h2>
+        <small>{{ today.strftime('%d %B %Y') }}</small>
+    </div>
+    
+    <div class="activity-grid">
+        <!-- Interventi -->
+        <div class="activity-card">
+            <div class="activity-card-header">
+                <h3>📝 Interventi</h3>
+                <span class="activity-badge">{{ interventi_oggi|length }}</span>
+            </div>
+            <div class="activity-card-content">
+                {% if interventi_oggi %}
+                <div class="activity-list">
+                    {% for intervento in interventi_oggi[:4] %}
+                    <div class="activity-item">
+                        <div class="activity-time">{{ intervento.data.strftime('%H:%M') }}</div>
+                        <div class="activity-info">
+                            <div class="activity-icon">{{ intervento.tipo_icon }}</div>
+                            <div class="activity-details">
+                                <div class="activity-title">{{ intervento.titolo }}</div>
+                                <div class="activity-subtitle">{{ intervento.cliente.nome }}{% if intervento.durata_minuti %} • {{ intervento.durata_minuti }}min{% endif %}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if interventi_oggi|length > 4 %}
+                    <div class="activity-more">+{{ interventi_oggi|length - 4 }} altri interventi</div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="activity-empty">
+                    <div class="empty-icon">📝</div>
+                    <div class="empty-text">Nessun intervento oggi</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Todo oggi -->
+        <div class="activity-card">
+            <div class="activity-card-header">
+                <h3>✅ Todo Scadenze</h3>
+                <span class="activity-badge {% if todos_oggi > 0 %}badge-warning{% endif %}">{{ todos_oggi }}</span>
+            </div>
+            <div class="activity-card-content">
+                {% if todos_oggi > 0 %}
+                <div class="todo-summary">
+                    <div class="todo-count">{{ todos_oggi }} task</div>
+                    <div class="todo-label">con scadenza oggi</div>
+                    <a href="/todos" class="todo-action">Gestisci tutto →</a>
+                </div>
+                {% else %}
+                <div class="activity-empty">
+                    <div class="empty-icon">✅</div>
+                    <div class="empty-text">Nessun todo in scadenza</div>
+                    <div class="empty-subtext">Ottimo lavoro!</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sezione Azioni Rapide -->
+<section class="dashboard-section actions-section">
+    <div class="section-header">
+        <h2>⚡ Azioni Rapide</h2>
+        <small>Accesso diretto alle funzioni principali</small>
+    </div>
+    
+    <div class="actions-grid">
+        <div class="action-card">
+            <div class="action-icon">⏱️</div>
+            <div class="action-content">
+                <h3>Timer</h3>
+                {% if not timer_attivo %}
+                <p>Avvia il tracking del tempo</p>
+                <a href="/timer" class="action-button primary">Nuovo Timer</a>
+                {% else %}
+                <p>Timer attualmente attivo</p>
+                <span class="action-status">In corso</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="action-card">
+            <div class="action-icon">👥</div>
+            <div class="action-content">
+                <h3>Clienti</h3>
+                <p>Gestisci la base clienti</p>
+                <a href="/clienti" class="action-button secondary">Visualizza Tutti</a>
+            </div>
+        </div>
+        
+        <div class="action-card">
+            <div class="action-icon">✅</div>
+            <div class="action-content">
+                <h3>Todo List</h3>
+                <p>Organizza le attività</p>
+                <a href="/todos" class="action-button secondary">Gestisci Task</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<hr>
+
+<!-- Statistiche aggiuntive -->
+<details>
+    <summary><strong>📊 Statistiche Dettagliate</strong></summary>
+    <div class="grid">
+        <div>
+            <h4>Questa settimana</h4>
+            <ul>
+                <li>Clienti contattati: <em>dati CLI</em></li>
+                <li>Ore lavorate: <em>dati CLI</em></li>
+                <li>Todo completati: <em>dati CLI</em></li>
+            </ul>
+        </div>
+        <div>
+            <h4>Questo mese</h4>
+            <ul>
+                <li>Fatturato: €{{ fatturato_mese|int }}</li>
+                <li>Ore lavorate: {{ ore_mese }}h</li>
+                <li>Clienti attivi: {{ clienti_count }}</li>
+            </ul>
+        </div>
+    </div>
+    <p><small><em>Per statistiche complete utilizza <code>clienti stats</code> da CLI</em></small></p>
+</details>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Aggiorna timer status dinamicamente
+    function updateTimerStatus(data) {
+        const timerElement = document.getElementById('timer-status');
+        if (timerElement && data.attivo) {
+            timerElement.innerHTML = `
+                <strong>${data.cliente}</strong><br>
+                ${data.descrizione}<br>
+                <span class="timer-display">⏱️ ${data.durata} - €${data.compenso}</span>
+            `;
+        }
+    }
+    
+    // Polling timer status
+    if (document.getElementById('timer-status')) {
+        setInterval(() => {
+            fetch('/api/timer/status')
+                .then(response => response.json())
+                .then(data => updateTimerStatus(data))
+                .catch(error => console.log('Timer status fetch error:', error));
+        }, 1000);
+    }
+</script>
+{% endblock %}

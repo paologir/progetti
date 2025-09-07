@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Timer - Clienti CRM{% endblock %}
+
+{% block content %}
+<h1>⏱️ Time Tracking</h1>
+
+<!-- Timer attivo -->
+{% if timer_attivo %}
+<div class="timer-active">
+    <h3>Timer Attivo</h3>
+    <div class="timer-display" id="timer-status">
+        <strong>{{ timer_attivo.cliente.nome }}</strong><br>
+        {{ timer_attivo.descrizione }}<br>
+        <span class="timer-display" id="timer-duration">Caricamento...</span><br>
+        <small id="timer-compensation">Compenso: €0.00</small>
+    </div>
+    <form method="post" action="/timer/stop" style="margin-top: 1rem;">
+        <button type="submit" class="secondary" style="width: 100%;">⏹️ Ferma Timer</button>
+    </form>
+</div>
+{% else %}
+<div class="alert-info">
+    <strong>Nessun timer attivo</strong>
+    <br>Avvia un nuovo timer per iniziare il tracking del tempo.
+</div>
+{% endif %}
+
+<!-- Nuovo timer -->
+{% if not timer_attivo %}
+<h2>🚀 Avvia Nuovo Timer</h2>
+
+<form method="post" action="/timer/start">
+    <div class="grid">
+        <div>
+            <label for="cliente_id">Cliente *</label>
+            <select name="cliente_id" required>
+                <option value="">Seleziona cliente...</option>
+                {% for cliente in clienti %}
+                <option value="{{ cliente.id }}">
+                    {{ cliente.nome }} (€{{ cliente.tariffa_oraria|int }}/h)
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label for="descrizione">Descrizione attività</label>
+            <input type="text" name="descrizione" placeholder="Es: Ottimizzazione campagne Google Ads">
+        </div>
+    </div>
+    
+    <button type="submit" style="width: 100%;">⏱️ Avvia Timer</button>
+</form>
+{% endif %}
+
+<!-- Sessioni recenti -->
+<h2>📊 Sessioni Recenti ({{ sessioni_recenti|length }})</h2>
+
+{% if sessioni_recenti %}
+<div class="table-responsive">
+    <table class="table-compact">
+        <thead>
+            <tr>
+                <th>Data/Ora</th>
+                <th>Cliente</th>
+                <th>Descrizione</th>
+                <th>Durata</th>
+                <th>Tariffa</th>
+                <th>Compenso</th>
+                <th>Stato</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for sessione in sessioni_recenti %}
+        <tr>
+            <td>
+                {{ sessione.inizio.strftime('%d/%m') }}<br>
+                <small>{{ sessione.inizio.strftime('%H:%M') }} - {{ sessione.fine.strftime('%H:%M') }}</small>
+            </td>
+            <td>
+                <strong><a href="/clienti/{{ sessione.cliente.id }}">{{ sessione.cliente.nome }}</a></strong>
+            </td>
+            <td>
+                {{ sessione.descrizione or 'Lavoro' }}
+                {% if sessione.note %}
+                    <br><small style="color: #6c757d;">{{ sessione.note }}</small>
+                {% endif %}
+            </td>
+            <td>
+                <strong>{{ "%.1f"|format(sessione.durata_ore) }}h</strong><br>
+                <small>{{ "%.0f"|format(sessione.durata_ore * 60) }}min</small>
+            </td>
+            <td>
+                €{{ sessione.tariffa_oraria|int }}/h
+            </td>
+            <td>
+                <strong>€{{ "%.2f"|format(sessione.compenso) }}</strong>
+            </td>
+            <td>
+                {% if sessione.fatturato %}
+                    <span style="color: #28a745;">✅ Fatturato</span>
+                {% else %}
+                    <span style="color: #ffc107;">⏳ Da fatturare</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Riassunto settimana -->
+{% set ore_settimana = sessioni_recenti | map(attribute='durata_ore') | sum %}
+{% set compenso_settimana = sessioni_recenti | map(attribute='compenso') | sum %}
+
+<div class="alert-info" style="margin-top: 1rem;">
+    <strong>📈 Riassunto ultimi 7 giorni:</strong>
+    {{ sessioni_recenti|length }} sessioni, 
+    {{ "%.1f"|format(ore_settimana) }}h lavorate, 
+    €{{ "%.2f"|format(compenso_settimana) }} di compensi
+</div>
+
+{% else %}
+<p><em>Nessuna sessione di lavoro negli ultimi 7 giorni</em></p>
+{% endif %}
+
+<!-- Note informative -->
+<hr>
+<details>
+    <summary><strong>📝 Gestione Time Tracking</strong></summary>
+    <div class="grid">
+        <div>
+            <h4>Funzioni Web</h4>
+            <ul>
+                <li>✅ Avvia/ferma timer</li>
+                <li>✅ Visualizzazione sessioni recenti</li>
+                <li>✅ Timer live con compenso</li>
+                <li>❌ Modifica sessioni (solo CLI)</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Funzioni CLI Complete</h4>
+            <ul>
+                <li><code>clienti time start "Cliente"</code></li>
+                <li><code>clienti time stop</code></li>
+                <li><code>clienti time today</code> - Report giornaliero</li>
+                <li><code>clienti time week</code> - Report settimanale</li>
+                <li><code>clienti time report --cliente "Nome"</code></li>
+                <li><code>clienti time export --month 9</code></li>
+            </ul>
+        </div>
+    </div>
+    <p><small><em>Per gestione completa delle sessioni utilizza l'interfaccia CLI</em></small></p>
+</details>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Timer live update
+    function updateTimer() {
+        const timerElement = document.getElementById('timer-status');
+        if (!timerElement) return;
+        
+        fetch('/api/timer/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.attivo) {
+                    document.getElementById('timer-duration').textContent = `⏱️ ${data.durata}`;
+                    document.getElementById('timer-compensation').textContent = `Compenso: €${data.compenso}`;
+                }
+            })
+            .catch(error => {
+                console.log('Timer update error:', error);
+            });
+    }
+    
+    // Update ogni secondo se timer è attivo
+    {% if timer_attivo %}
+    setInterval(updateTimer, 1000);
+    updateTimer(); // Prima chiamata immediata
+    {% endif %}
+    
+    // Conferma stop timer
+    document.querySelectorAll('form[action="/timer/stop"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (!confirm('Vuoi fermare il timer attivo?')) {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Preview tariffa cliente
+    const clienteSelect = document.querySelector('select[name="cliente_id"]');
+    if (clienteSelect) {
+        clienteSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                const tariffaMatch = selectedOption.text.match(/€(\d+)\/h/);
+                if (tariffaMatch) {
+                    console.log(`Tariffa selezionata: €${tariffaMatch[1]}/h`);
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

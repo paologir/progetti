@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}{{ cliente.nome }} - Clienti CRM{% endblock %}
+
+{% block content %}
+<div class="nav-secondary">
+    <a href="/clienti">← Torna ai clienti</a>
+</div>
+
+<h1>👤 {{ cliente.nome }}</h1>
+
+<!-- Info cliente -->
+<div class="grid">
+    <div>
+        <h3>📋 Informazioni</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td><strong>Stato:</strong></td>
+                    <td>
+                        {% if cliente.stato == 'attivo' %}
+                            <span style="color: #28a745;">🟢 Attivo</span>
+                        {% elif cliente.stato == 'prospect' %}
+                            <span style="color: #ffc107;">🟡 Prospect</span>
+                        {% elif cliente.stato == 'pausa' %}
+                            <span style="color: #6c757d;">⏸️ Pausa</span>
+                        {% else %}
+                            {{ cliente.stato }}
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>P.IVA:</strong></td>
+                    <td>{{ cliente.piva or '-' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Indirizzo:</strong></td>
+                    <td>{{ cliente.indirizzo_completo or '-' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Tariffa oraria:</strong></td>
+                    <td>€{{ cliente.tariffa_oraria|int }}/h</td>
+                </tr>
+                {% if cliente.budget_mensile %}
+                <tr>
+                    <td><strong>Budget mensile:</strong></td>
+                    <td>€{{ cliente.budget_mensile|int }}</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+        
+        {% if cliente.tags_list %}
+        <h4>🏷️ Tags</h4>
+        <div>
+            {% for tag in cliente.tags_list %}
+                <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if cliente.note %}
+        <h4>📝 Note</h4>
+        <blockquote>{{ cliente.note }}</blockquote>
+        {% endif %}
+    </div>
+    
+    <div>
+        <h3>📊 Statistiche</h3>
+        <div class="stat-card">
+            <span class="stat-number">{{ ore_totali }}h</span>
+            <div class="stat-label">Ore Totali</div>
+        </div>
+        
+        <div class="stat-card" style="margin-top: 1rem;">
+            <span class="stat-number" style="color: #dc3545;">{{ ore_non_fatturate }}h</span>
+            <div class="stat-label">Da Fatturare</div>
+            <small>€{{ compenso_non_fatturato }}</small>
+        </div>
+        
+        <h4>⚡ Azioni Rapide</h4>
+        <p>
+            {% if cliente.stato == 'attivo' %}
+            <a href="/timer" role="button" class="outline" style="width: 100%; text-align: center;">⏱️ Avvia Timer</a>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Todo aperti -->
+<h2>✅ Todo Aperti ({{ todos|length }})</h2>
+{% if todos %}
+<div class="table-responsive">
+    <table class="table-compact">
+        <thead>
+            <tr>
+                <th>Priorità</th>
+                <th>Titolo</th>
+                <th>Scadenza</th>
+                <th>Stato</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for todo in todos %}
+        <tr {% if todo.is_overdue %}class="overdue"{% endif %}>
+            <td>
+                <span class="priority-{% if todo.priorita == 1 %}high{% elif todo.priorita == -1 %}low{% else %}normal{% endif %}">
+                    {{ todo.priorita_text }}
+                </span>
+            </td>
+            <td>
+                <strong>{{ todo.titolo }}</strong>
+                {% if todo.descrizione %}
+                    <br><small>{{ todo.descrizione }}</small>
+                {% endif %}
+            </td>
+            <td>
+                {% if todo.scadenza %}
+                    {{ todo.scadenza.strftime('%d/%m/%Y') }}
+                    {% if todo.is_overdue %}
+                        <br><small style="color: #dc3545;">In ritardo</small>
+                    {% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if todo.is_overdue %}
+                    🔴 Urgente
+                {% else %}
+                    ⏳ Aperto
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p><em>Nessun todo aperto per questo cliente</em></p>
+{% endif %}
+
+<!-- Ultimi interventi -->
+<h2>📝 Ultimi Interventi ({{ interventi|length }})</h2>
+{% if interventi %}
+<div class="table-responsive">
+    <table class="table-compact">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Titolo</th>
+                <th>Durata</th>
+                <th>Costo</th>
+                <th>Stato</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for intervento in interventi %}
+        <tr>
+            <td>
+                {{ intervento.data.strftime('%d/%m') }}<br>
+                <small>{{ intervento.data.strftime('%H:%M') }}</small>
+            </td>
+            <td>{{ intervento.tipo_icon }}</td>
+            <td>
+                <strong>{{ intervento.titolo }}</strong>
+                {% if intervento.descrizione %}
+                    <br><small>{{ intervento.descrizione }}</small>
+                {% endif %}
+            </td>
+            <td>
+                {% if intervento.durata_minuti %}
+                    {{ intervento.durata_minuti }}min
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if intervento.costo %}
+                    €{{ intervento.costo|int }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if intervento.fatturato %}
+                    ✅ Fatturato
+                {% else %}
+                    ⏳ Da fatturare
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p><em>Nessun intervento registrato per questo cliente</em></p>
+{% endif %}
+
+<!-- Note gestione -->
+<hr>
+<details>
+    <summary><strong>📝 Gestione Cliente</strong></summary>
+    <div class="grid">
+        <div>
+            <h4>Funzioni Web</h4>
+            <ul>
+                <li>✅ Visualizzazione dettagli completi</li>
+                <li>✅ Todo e interventi collegati</li>
+                <li>✅ Statistiche ore/compensi</li>
+                <li>❌ Modifica dati (solo CLI)</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Gestione via CLI</h4>
+            <ul>
+                <li><code>clienti client show "{{ cliente.nome }}"</code></li>
+                <li><code>clienti client edit "{{ cliente.nome }}"</code></li>
+                <li><code>clienti todo cliente "{{ cliente.nome }}"</code></li>
+                <li><code>clienti log cliente "{{ cliente.nome }}"</code></li>
+                <li><code>clienti time report --cliente "{{ cliente.nome }}"</code></li>
+            </ul>
+        </div>
+    </div>
+</details>
+
+<style>
+.tag {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    margin-right: 0.5rem;
+    font-size: 0.75rem;
+}
+</style>
+
+{% endblock %}
