@@ -83,7 +83,26 @@
                 {% endif %}
             </td>
             <td>
-                <a href="/clienti/{{ cliente.id }}" role="button" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Dettagli</a>
+                <div class="button-group-compact">
+                    <a href="/clienti/{{ cliente.id }}" class="btn-icon btn-info" title="Visualizza dettagli">
+                        👁️
+                    </a>
+                    
+                    <button type="button" class="btn-icon btn-primary edit-btn" title="Modifica cliente"
+                            data-id="{{ cliente.id }}"
+                            data-nome="{{ cliente.nome }}"
+                            data-indirizzo="{{ cliente.indirizzo or '' }}"
+                            data-note="{{ cliente.note or '' }}"
+                            data-stato="{{ cliente.stato }}">
+                        ✏️
+                    </button>
+                    
+                    <form method="post" action="/clienti/{{ cliente.id }}/delete" style="display: inline;" onsubmit="return confirm('Eliminare questo cliente? ATTENZIONE: verranno eliminati anche tutti gli interventi, todo e pagamenti collegati!')">
+                        <button type="submit" class="btn-icon btn-danger" title="Elimina cliente">
+                            🗑️
+                        </button>
+                    </form>
+                </div>
             </td>
         </tr>
         {% endfor %}
@@ -153,6 +172,139 @@
         display: none;
     }
 }
+
+/* Button styles from todos template */
+.button-group-compact {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.btn-info {
+    color: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.btn-info:hover {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.btn-primary {
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #dc3545;
+    color: white;
+}
 </style>
+
+<!-- Edit Modal -->
+<dialog id="edit-modal">
+    <article style="width: 600px; max-width: 90vw;">
+        <header>
+            <button aria-label="Close" rel="prev" onclick="document.getElementById('edit-modal').close()"></button>
+            <h3>✏️ Modifica Cliente</h3>
+        </header>
+        
+        <form id="edit-form" method="post" action="">
+            <label for="edit_nome">Nome/Ragione Sociale *</label>
+            <input type="text" name="nome" id="edit_nome" required>
+            
+            <label for="edit_indirizzo">Indirizzo</label>
+            <input type="text" name="indirizzo" id="edit_indirizzo" placeholder="Via, numero, città">
+            
+            <label for="edit_stato">Stato *</label>
+            <select name="stato" id="edit_stato" required>
+                <option value="attivo">🟢 Attivo</option>
+                <option value="prospect">💼 Prospect</option>
+                <option value="pausa">⏸️ In pausa</option>
+                <option value="archiviato">📁 Archiviato</option>
+            </select>
+            
+            <label for="edit_note">Note</label>
+            <textarea name="note" id="edit_note" rows="3" placeholder="Note interne sul cliente..."></textarea>
+            
+            <footer style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="secondary" onclick="document.getElementById('edit-modal').close()" style="margin-right: 0.5rem;">
+                    Annulla
+                </button>
+                <button type="submit" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; color: white;">
+                    💾 Salva Modifiche
+                </button>
+            </footer>
+        </form>
+    </article>
+</dialog>
+
+<script>
+// Edit cliente function
+function editCliente(id, nome, indirizzo, note, stato) {
+    // Set form action for the specific cliente
+    document.getElementById('edit-form').action = `/clienti/${id}/edit`;
+    
+    // Set form values
+    document.getElementById('edit_nome').value = nome;
+    document.getElementById('edit_indirizzo').value = indirizzo;
+    document.getElementById('edit_note').value = note;
+    document.getElementById('edit_stato').value = stato;
+    
+    // Show modal
+    document.getElementById('edit-modal').showModal();
+}
+
+// Handle edit buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const id = this.dataset.id;
+            const nome = this.dataset.nome;
+            const indirizzo = this.dataset.indirizzo;
+            const note = this.dataset.note;
+            const stato = this.dataset.stato;
+            
+            editCliente(id, nome, indirizzo, note, stato);
+        });
+    });
+});
+</script>
 
 {% endblock %}

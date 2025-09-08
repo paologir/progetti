@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block title %}Interventi - Clienti CRM{% endblock %}
+
+{% block content %}
+<h1>📝 Gestione Interventi</h1>
+
+<!-- Statistiche -->
+<div class="dashboard-grid">
+    <div class="stat-card">
+        <span class="stat-number">{{ interventi_oggi }}</span>
+        <div class="stat-label">📅 Oggi</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number">{{ interventi|length }}</span>
+        <div class="stat-label">📋 Recenti</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number">{{ ore_mese }}h</span>
+        <div class="stat-label">⏱️ Ore Mese</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number">€{{ valore_mese }}</span>
+        <div class="stat-label">💰 Valore Mese</div>
+    </div>
+</div>
+
+<!-- Nuovo intervento -->
+<details>
+    <summary role="button" class="outline"><strong>➕ Aggiungi Nuovo Intervento</strong></summary>
+    
+    <form method="post" action="/interventi/add" style="margin-top: 1rem;">
+        <div class="grid">
+            <div>
+                <label for="cliente_id">Cliente *</label>
+                <select name="cliente_id" required>
+                    <option value="">Seleziona cliente...</option>
+                    {% for cliente in clienti %}
+                    <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="tipo">Tipo *</label>
+                <select name="tipo" required>
+                    <option value="call">📞 Chiamata</option>
+                    <option value="email">📧 Email</option>
+                    <option value="meeting">🤝 Meeting</option>
+                    <option value="lavoro">💻 Lavoro</option>
+                    <option value="altro">📝 Altro</option>
+                </select>
+            </div>
+        </div>
+        
+        <label for="titolo">Titolo *</label>
+        <input type="text" name="titolo" required placeholder="Oggetto dell'intervento">
+        
+        <label for="descrizione">Descrizione</label>
+        <textarea name="descrizione" placeholder="Descrizione dettagliata..." rows="2"></textarea>
+        
+        <div class="grid">
+            <div>
+                <label for="durata_minuti">Durata (minuti)</label>
+                <input type="number" name="durata_minuti" placeholder="Es: 60" min="1">
+            </div>
+            
+            <div>
+                <label for="costo">Costo (€)</label>
+                <input type="number" name="costo" step="0.01" placeholder="Es: 75.00" min="0">
+            </div>
+        </div>
+        
+        <button type="submit" style="width: 100%; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); border: none; border-radius: 8px; padding: 0.75rem; font-weight: 600; transition: all 0.3s ease;">
+            ➕ Aggiungi Intervento
+        </button>
+    </form>
+</details>
+
+<!-- Filtri -->
+<details>
+    <summary><strong>🔍 Filtri</strong></summary>
+    <div class="grid" style="margin-top: 1rem;">
+        <div>
+            <label for="filter-cliente">Cliente</label>
+            <select id="filter-cliente" onchange="filterInterventi()">
+                <option value="">Tutti i clienti</option>
+                {% for cliente in clienti %}
+                <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label for="filter-tipo">Tipo</label>
+            <select id="filter-tipo" onchange="filterInterventi()">
+                <option value="">Tutti i tipi</option>
+                <option value="call">Chiamate</option>
+                <option value="email">Email</option>
+                <option value="meeting">Meeting</option>
+                <option value="lavoro">Lavoro</option>
+                <option value="altro">Altro</option>
+            </select>
+        </div>
+        
+        <div>
+            <label for="filter-periodo">Periodo</label>
+            <select id="filter-periodo" onchange="filterInterventi()">
+                <option value="">Tutti</option>
+                <option value="oggi">Oggi</option>
+                <option value="settimana">Questa settimana</option>
+                <option value="mese">Questo mese</option>
+            </select>
+        </div>
+    </div>
+</details>
+
+<!-- Lista interventi -->
+<h2>📋 Interventi ({{ interventi|length }})</h2>
+
+{% if interventi %}
+<div class="table-responsive">
+    <table class="table-compact" id="interventi-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Cliente</th>
+                <th>Titolo</th>
+                <th>Durata</th>
+                <th>Costo</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for intervento in interventi %}
+        <tr data-cliente="{{ intervento.cliente.nome }}" data-tipo="{{ intervento.tipo }}" data-data="{{ intervento.data.strftime('%Y-%m-%d') }}">
+            <td>{{ intervento.id }}</td>
+            <td>
+                <strong>{{ intervento.data.strftime('%d/%m') }}</strong>
+                <br><small>{{ intervento.data.strftime('%H:%M') }}</small>
+                {% if intervento.data.date() == today %}
+                    <br><small style="color: #28a745;">Oggi</small>
+                {% endif %}
+            </td>
+            <td style="text-align: center;">{{ intervento.tipo_icon }}</td>
+            <td>
+                <a href="/clienti/{{ intervento.cliente.id }}"><strong>{{ intervento.cliente.nome }}</strong></a>
+            </td>
+            <td>
+                <strong>{{ intervento.titolo }}</strong>
+                {% if intervento.descrizione %}
+                    <br><small style="color: #6c757d;">{{ intervento.descrizione[:80] }}{% if intervento.descrizione|length > 80 %}...{% endif %}</small>
+                {% endif %}
+            </td>
+            <td style="text-align: center;">
+                {% if intervento.durata_minuti %}
+                    {% set ore = (intervento.durata_minuti // 60) %}
+                    {% set minuti = (intervento.durata_minuti % 60) %}
+                    {% if ore > 0 %}
+                        {{ ore }}h{% if minuti > 0 %} {{ minuti }}m{% endif %}
+                    {% else %}
+                        {{ minuti }}m
+                    {% endif %}
+                {% else %}
+                    <small>-</small>
+                {% endif %}
+            </td>
+            <td style="text-align: right;">
+                {% if intervento.costo %}
+                    <strong>€{{ "%.2f"|format(intervento.costo) }}</strong>
+                    {% if not intervento.fatturato %}
+                        <br><small style="color: #ffc107;">Da fatturare</small>
+                    {% else %}
+                        <br><small style="color: #28a745;">Fatturato</small>
+                    {% endif %}
+                {% else %}
+                    <small>-</small>
+                {% endif %}
+            </td>
+            <td>
+                <div class="button-group">
+                    {% if intervento.costo and not intervento.fatturato %}
+                    <form method="post" action="/interventi/{{ intervento.id }}/fatturato" style="display: inline;">
+                        <button type="submit" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                            💰 Fatturato
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <button type="button" class="outline edit-btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #007bff;" 
+                            data-id="{{ intervento.id }}"
+                            data-cliente-id="{{ intervento.cliente.id }}"
+                            data-tipo="{{ intervento.tipo }}"
+                            data-titolo="{{ intervento.titolo }}"
+                            data-descrizione="{{ intervento.descrizione or '' }}"
+                            data-durata="{{ intervento.durata_minuti or '' }}"
+                            data-costo="{{ intervento.costo or '' }}">
+                        ✏️ Modifica
+                    </button>
+                    
+                    <form method="post" action="/interventi/{{ intervento.id }}/delete" style="display: inline;" onsubmit="return confirm('Eliminare questo intervento?')">
+                        <button type="submit" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #dc3545;">
+                            🗑️ Elimina
+                        </button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="alert-info">
+    <strong>📝 Nessun intervento registrato!</strong>
+    <br>Aggiungi il primo intervento usando il form sopra.
+</div>
+{% endif %}
+
+<!-- Edit Modal -->
+<dialog id="edit-modal">
+    <article style="width: 600px; max-width: 90vw;">
+        <header>
+            <button aria-label="Close" rel="prev" onclick="document.getElementById('edit-modal').close()"></button>
+            <h3>✏️ Modifica Intervento</h3>
+        </header>
+        
+        <form id="edit-form" method="post" action="">
+            <div class="grid">
+                <div>
+                    <label for="edit_cliente_id">Cliente *</label>
+                    <select name="cliente_id" id="edit_cliente_id" required>
+                        <option value="">Seleziona cliente...</option>
+                        {% for cliente in clienti %}
+                        <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="edit_tipo">Tipo *</label>
+                    <select name="tipo" id="edit_tipo" required>
+                        <option value="call">📞 Chiamata</option>
+                        <option value="email">📧 Email</option>
+                        <option value="meeting">🤝 Meeting</option>
+                        <option value="lavoro">💻 Lavoro</option>
+                        <option value="altro">📝 Altro</option>
+                    </select>
+                </div>
+            </div>
+            
+            <label for="edit_titolo">Titolo *</label>
+            <input type="text" name="titolo" id="edit_titolo" required>
+            
+            <label for="edit_descrizione">Descrizione</label>
+            <textarea name="descrizione" id="edit_descrizione" rows="2"></textarea>
+            
+            <div class="grid">
+                <div>
+                    <label for="edit_durata_minuti">Durata (minuti)</label>
+                    <input type="number" name="durata_minuti" id="edit_durata_minuti" min="1">
+                </div>
+                
+                <div>
+                    <label for="edit_costo">Costo (€)</label>
+                    <input type="number" name="costo" id="edit_costo" step="0.01" min="0">
+                </div>
+            </div>
+            
+            <footer style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="secondary" onclick="document.getElementById('edit-modal').close()" style="margin-right: 0.5rem;">
+                    Annulla
+                </button>
+                <button type="submit" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; color: white;">
+                    💾 Salva Modifiche
+                </button>
+            </footer>
+        </form>
+    </article>
+</dialog>
+
+<!-- Note informative -->
+<hr>
+<details>
+    <summary><strong>📝 Gestione Interventi</strong></summary>
+    <div class="grid">
+        <div>
+            <h4>Funzioni Web</h4>
+            <ul>
+                <li>✅ Visualizzazione con filtri</li>
+                <li>✅ Aggiunta nuovi interventi</li>
+                <li>✅ Modifica/eliminazione</li>
+                <li>✅ Marcatura come fatturato</li>
+                <li>✅ Statistiche mensili</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Funzioni CLI Complete</h4>
+            <ul>
+                <li><code>clienti interventi add</code> - Wizard interattivo</li>
+                <li><code>clienti interventi list</code> - Lista con filtri</li>
+                <li><code>clienti interventi oggi</code> - Riepilogo giornata</li>
+                <li><code>clienti interventi cliente "Nome"</code> - Timeline cliente</li>
+                <li><code>clienti interventi edit ID</code> - Modifica intervento</li>
+                <li><code>clienti interventi delete ID</code> - Elimina intervento</li>
+            </ul>
+        </div>
+    </div>
+    <p><small><em>Per gestione avanzata degli interventi utilizza l'interfaccia CLI</em></small></p>
+</details>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Edit intervento function
+    function editIntervento(id, clienteId, tipo, titolo, descrizione, durata, costo) {
+        // Set form action for the specific intervento
+        document.getElementById('edit-form').action = `/interventi/${id}/edit`;
+        
+        // Set form values
+        document.getElementById('edit_cliente_id').value = clienteId;
+        document.getElementById('edit_tipo').value = tipo;
+        document.getElementById('edit_titolo').value = titolo;
+        document.getElementById('edit_descrizione').value = descrizione;
+        document.getElementById('edit_durata_minuti').value = durata;
+        document.getElementById('edit_costo').value = costo;
+        
+        // Show modal
+        document.getElementById('edit-modal').showModal();
+    }
+    
+    // Filter interventi function
+    function filterInterventi() {
+        const clienteFilter = document.getElementById('filter-cliente').value.toLowerCase();
+        const tipoFilter = document.getElementById('filter-tipo').value;
+        const periodoFilter = document.getElementById('filter-periodo').value;
+        
+        const today = new Date();
+        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        const rows = document.querySelectorAll('#interventi-table tbody tr');
+        
+        rows.forEach(row => {
+            const cliente = row.dataset.cliente.toLowerCase();
+            const tipo = row.dataset.tipo;
+            const dataIntervento = new Date(row.dataset.data);
+            
+            const matchCliente = !clienteFilter || cliente.includes(clienteFilter);
+            const matchTipo = !tipoFilter || tipo === tipoFilter;
+            
+            let matchPeriodo = true;
+            if (periodoFilter === 'oggi') {
+                matchPeriodo = dataIntervento.toDateString() === new Date().toDateString();
+            } else if (periodoFilter === 'settimana') {
+                matchPeriodo = dataIntervento >= startOfWeek;
+            } else if (periodoFilter === 'mese') {
+                matchPeriodo = dataIntervento >= startOfMonth;
+            }
+            
+            if (matchCliente && matchTipo && matchPeriodo) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update visible count
+        const visibleRows = document.querySelectorAll('#interventi-table tbody tr[style=""]').length;
+        const totalRows = rows.length;
+        
+        // Update header count
+        const header = document.querySelector('h2');
+        if (visibleRows === totalRows) {
+            header.textContent = `📋 Interventi (${totalRows})`;
+        } else {
+            header.textContent = `📋 Interventi (${visibleRows}/${totalRows})`;
+        }
+    }
+    
+    // Handle edit buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const id = this.dataset.id;
+                const clienteId = this.dataset.clienteId;
+                const tipo = this.dataset.tipo;
+                const titolo = this.dataset.titolo;
+                const descrizione = this.dataset.descrizione;
+                const durata = this.dataset.durata;
+                const costo = this.dataset.costo;
+                
+                editIntervento(id, clienteId, tipo, titolo, descrizione, durata, costo);
+            });
+        });
+    });
+    
+    // Enhanced CSS for beautiful styling
+    const style = document.createElement('style');
+    style.textContent = `
+        /* === DASHBOARD GRID ENHANCED === */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* === TABLE ENHANCED STYLING === */
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            background: white;
+        }
+        
+        .table-compact th {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 1rem 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+        
+        .table-compact td {
+            vertical-align: middle;
+            font-size: 0.9rem;
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .table-compact tbody tr:hover {
+            background-color: rgba(0,123,255,0.04);
+            transform: scale(1.005);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        /* === BUTTON GROUPS ENHANCED === */
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .button-group button {
+            margin: 0;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        
+        .button-group button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .button-group button[style*="color: #dc3545"]:hover {
+            background-color: #dc3545;
+            color: white !important;
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #b8daff 100%);
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

@@ -1,0 +1,787 @@
+{% extends "base.html" %}
+
+{% block title %}Pagamenti - Clienti CRM{% endblock %}
+
+{% block content %}
+<h1>💰 Gestione Pagamenti</h1>
+
+<!-- Riassunto pagamenti -->
+<div class="dashboard-grid">
+    <div class="stat-card">
+        <span class="stat-number" style="color: #dc3545;">{{ scadute_count }}</span>
+        <div class="stat-label">🔴 Scadute</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number" style="color: #ffc107;">{{ prossime_count }}</span>
+        <div class="stat-label">📅 Prossime (7gg)</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number" style="color: #28a745;">{{ emesse_count }}</span>
+        <div class="stat-label">✅ Emesse</div>
+    </div>
+    
+    <div class="stat-card">
+        <span class="stat-number">{{ totali_count }}</span>
+        <div class="stat-label">📋 Totali</div>
+    </div>
+</div>
+
+<!-- Nuovo pagamento -->
+<details>
+    <summary role="button" class="outline"><strong>➕ Aggiungi Nuovo Pagamento</strong></summary>
+    
+    <form method="post" action="/pagamenti/add" style="margin-top: 1rem;">
+        <div class="grid">
+            <div>
+                <label for="cliente_id">Cliente *</label>
+                <select name="cliente_id" required>
+                    <option value="">Seleziona cliente...</option>
+                    {% for cliente in clienti %}
+                    <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="tipo">Tipo *</label>
+                <select name="tipo" required>
+                    <option value="fattura">💼 Fattura</option>
+                    <option value="parcella">📝 Parcella</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div>
+                <label for="data_scadenza">Data Scadenza *</label>
+                <input type="date" name="data_scadenza" required>
+            </div>
+            
+            <div>
+                <label for="importo_previsto">Importo Previsto</label>
+                <input type="number" name="importo_previsto" step="0.01" placeholder="Es: 500.00">
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div>
+                <label for="ricorrenza">Ricorrenza</label>
+                <select name="ricorrenza">
+                    <option value="">Nessuna ricorrenza</option>
+                    <option value="mensile">🗓️ Mensile</option>
+                    <option value="bimestrale">📅 Bimestrale</option>
+                    <option value="trimestrale">📊 Trimestrale</option>
+                    <option value="semestrale">📈 Semestrale</option>
+                    <option value="annuale">📆 Annuale</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="importo_variabile">Importo Variabile</label>
+                <label>
+                    <input type="checkbox" name="importo_variabile" value="true">
+                    Importo varia ogni ricorrenza
+                </label>
+            </div>
+        </div>
+        
+        <label for="descrizione">Descrizione</label>
+        <textarea name="descrizione" placeholder="Descrizione del servizio o prodotto..." rows="2"></textarea>
+        
+        <button type="submit" style="width: 100%; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); border: none; border-radius: 8px; padding: 0.75rem; font-weight: 600; transition: all 0.3s ease;">
+            ➕ Aggiungi Pagamento
+        </button>
+    </form>
+</details>
+
+<!-- Filtri -->
+<details>
+    <summary><strong>🔍 Filtri Avanzati</strong></summary>
+    <div class="grid" style="margin-top: 1rem;">
+        <div>
+            <label for="filter-cliente">Cliente</label>
+            <select id="filter-cliente" onchange="filterPagamenti()">
+                <option value="">Tutti i clienti</option>
+                {% for cliente in clienti %}
+                <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label for="filter-stato">Stato</label>
+            <select id="filter-stato" onchange="filterPagamenti()">
+                <option value="">Tutti gli stati</option>
+                <option value="pending">Da emettere</option>
+                <option value="emessa">Emessa</option>
+                <option value="pagata">Pagata</option>
+                <option value="overdue">Scaduta</option>
+            </select>
+        </div>
+        
+        <div>
+            <label for="filter-tipo">Tipo</label>
+            <select id="filter-tipo" onchange="filterPagamenti()">
+                <option value="">Tutti i tipi</option>
+                <option value="fattura">Fattura</option>
+                <option value="parcella">Parcella</option>
+            </select>
+        </div>
+    </div>
+</details>
+
+<!-- Lista pagamenti -->
+<h2>📋 Pagamenti ({{ pagamenti|length }})</h2>
+
+{% if pagamenti %}
+<div class="table-responsive">
+    <table class="table-compact" id="pagamenti-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Tipo</th>
+                <th>Scadenza</th>
+                <th>Importo</th>
+                <th>Stato</th>
+                <th>Ricorrenza</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for pagamento in pagamenti %}
+        <tr {% if pagamento.is_overdue %}class="overdue"{% elif (pagamento.data_scadenza - today).days <= 7 and (pagamento.data_scadenza - today).days >= 0 and not pagamento.emessa %}class="due-soon"{% endif %} data-cliente="{{ pagamento.cliente.nome }}" data-stato="{% if pagamento.pagato %}pagata{% elif pagamento.emessa %}emessa{% elif pagamento.is_overdue %}overdue{% else %}pending{% endif %}" data-tipo="{{ pagamento.tipo }}">
+            <td>{{ pagamento.id }}</td>
+            <td>
+                <a href="/clienti/{{ pagamento.cliente.id }}"><strong>{{ pagamento.cliente.nome }}</strong></a>
+            </td>
+            <td>
+                {% if pagamento.tipo == 'fattura' %}
+                    💼 Fattura
+                {% else %}
+                    📝 Parcella
+                {% endif %}
+            </td>
+            <td>
+                <strong>{{ pagamento.data_scadenza.strftime('%d/%m/%Y') }}</strong>
+                {% if pagamento.is_overdue %}
+                    <br><small style="color: #dc3545;">
+                        {% set giorni_ritardo = (today - pagamento.data_scadenza).days %}
+                        {{ giorni_ritardo }} giorni di ritardo
+                    </small>
+                {% elif pagamento.data_scadenza == today %}
+                    <br><small style="color: #ffc107;">Scade oggi</small>
+                {% elif (pagamento.data_scadenza - today).days <= 7 %}
+                    <br><small style="color: #fd7e14;">Scade tra {{ (pagamento.data_scadenza - today).days }} giorni</small>
+                {% endif %}
+            </td>
+            <td>
+                {% if pagamento.importo_previsto %}
+                    <strong>€{{ "%.2f"|format(pagamento.importo_previsto) }}</strong>
+                {% else %}
+                    <span style="color: #6c757d;">Da definire</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if pagamento.pagato %}
+                    <span style="color: #28a745;">✅ Pagata</span>
+                    {% if pagamento.data_pagamento %}
+                        <br><small>{{ pagamento.data_pagamento.strftime('%d/%m/%Y') }}</small>
+                    {% endif %}
+                {% elif pagamento.emessa %}
+                    <span style="color: #17a2b8;">📄 Emessa</span>
+                    {% if pagamento.numero_documento %}
+                        <br><small>{{ pagamento.numero_documento }}</small>
+                    {% endif %}
+                {% elif pagamento.is_overdue %}
+                    <span style="color: #dc3545;">🔴 Scaduta</span>
+                {% else %}
+                    <span style="color: #ffc107;">⏳ Da emettere</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if pagamento.ricorrenza %}
+                    <span class="tag">{{ pagamento.ricorrenza.title() }}</span>
+                    {% if not pagamento.importo_fisso %}
+                        <br><small>💰 Variabile</small>
+                    {% endif %}
+                {% else %}
+                    <small>-</small>
+                {% endif %}
+            </td>
+            <td>
+                <div class="button-group">
+                    {% if not pagamento.emessa %}
+                    <form method="post" action="/pagamenti/{{ pagamento.id }}/emessa" style="display: inline;">
+                        <button type="submit" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                            📄 Emessa
+                        </button>
+                    </form>
+                    {% elif pagamento.emessa and not pagamento.pagato %}
+                    <form method="post" action="/pagamenti/{{ pagamento.id }}/pagata" style="display: inline;">
+                        <button type="submit" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                            💰 Pagata  
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <button type="button" class="outline edit-btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #007bff;" 
+                            data-id="{{ pagamento.id }}"
+                            data-cliente="{{ pagamento.cliente.nome }}"
+                            data-tipo="{{ pagamento.tipo }}"
+                            data-scadenza="{{ pagamento.data_scadenza }}"
+                            data-importo="{{ pagamento.importo_previsto or '' }}"
+                            data-ricorrenza="{{ pagamento.ricorrenza or '' }}"
+                            data-variabile="{{ 'true' if not pagamento.importo_fisso else 'false' }}"
+                            data-descrizione="{{ pagamento.descrizione or '' }}">
+                        ✏️ Modifica
+                    </button>
+                    
+                    <form method="post" action="/pagamenti/{{ pagamento.id }}/delete" style="display: inline;" onsubmit="return confirm('Eliminare questo pagamento?')">
+                        <button type="submit" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #dc3545;">
+                            🗑️ Elimina
+                        </button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="alert-info">
+    <strong>💰 Nessun pagamento registrato!</strong>
+    <br>Aggiungi il primo pagamento usando il form sopra.
+</div>
+{% endif %}
+
+<!-- Edit Modal -->
+<dialog id="edit-modal">
+    <article style="width: 600px; max-width: 90vw;">
+        <header>
+            <button aria-label="Close" rel="prev" onclick="document.getElementById('edit-modal').close()"></button>
+            <h3>✏️ Modifica Pagamento</h3>
+        </header>
+        
+        <form id="edit-form" method="post" action="">
+            <div class="grid">
+                <div>
+                    <label for="edit_cliente_id">Cliente *</label>
+                    <select name="cliente_id" id="edit_cliente_id" required>
+                        <option value="">Seleziona cliente...</option>
+                        {% for cliente in clienti %}
+                        <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="edit_tipo">Tipo *</label>
+                    <select name="tipo" id="edit_tipo" required>
+                        <option value="fattura">💼 Fattura</option>
+                        <option value="parcella">📝 Parcella</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div>
+                    <label for="edit_data_scadenza">Data Scadenza *</label>
+                    <input type="date" name="data_scadenza" id="edit_data_scadenza" required>
+                </div>
+                
+                <div>
+                    <label for="edit_importo_previsto">Importo Previsto</label>
+                    <input type="number" name="importo_previsto" id="edit_importo_previsto" step="0.01" placeholder="Es: 500.00">
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div>
+                    <label for="edit_ricorrenza">Ricorrenza</label>
+                    <select name="ricorrenza" id="edit_ricorrenza">
+                        <option value="">Nessuna ricorrenza</option>
+                        <option value="mensile">🗓️ Mensile</option>
+                        <option value="bimestrale">📅 Bimestrale</option>
+                        <option value="trimestrale">📊 Trimestrale</option>
+                        <option value="semestrale">📈 Semestrale</option>
+                        <option value="annuale">📆 Annuale</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="edit_importo_variabile">Importo Variabile</label>
+                    <label>
+                        <input type="checkbox" name="importo_variabile" id="edit_importo_variabile" value="true">
+                        Importo varia ogni ricorrenza
+                    </label>
+                </div>
+            </div>
+            
+            <label for="edit_descrizione">Descrizione</label>
+            <textarea name="descrizione" id="edit_descrizione" placeholder="Descrizione del servizio o prodotto..." rows="2"></textarea>
+            
+            <footer style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="secondary" onclick="document.getElementById('edit-modal').close()" style="margin-right: 0.5rem;">
+                    Annulla
+                </button>
+                <button type="submit" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; color: white;">
+                    💾 Salva Modifiche
+                </button>
+            </footer>
+        </form>
+    </article>
+</dialog>
+
+<!-- Note informative -->
+<hr>
+<details>
+    <summary><strong>📝 Gestione Pagamenti</strong></summary>
+    <div class="grid">
+        <div>
+            <h4>Funzioni Web</h4>
+            <ul>
+                <li>✅ Visualizzazione pagamenti con filtri</li>
+                <li>✅ Aggiunta nuovo pagamento</li>
+                <li>✅ Marca come emessa/pagata</li>
+                <li>✅ Eliminazione pagamenti</li>
+                <li>✅ Alert scadenze e ritardi</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Funzioni CLI Complete</h4>
+            <ul>
+                <li><code>clienti pagamenti list</code> - Lista con filtri avanzati</li>
+                <li><code>clienti pagamenti prossimi</code> - Scadenze prossime</li>
+                <li><code>clienti pagamenti add "Cliente"</code> - Wizard completo</li>
+                <li><code>clienti pagamenti dettaglio "Cliente"</code> - Per fatturazione</li>
+                <li><code>clienti pagamenti emessa 5 --numero "2024-001"</code></li>
+                <li><code>clienti pagamenti pagata 5</code></li>
+                <li><code>clienti pagamenti delete 12</code></li>
+            </ul>
+        </div>
+    </div>
+    <p><small><em>Per gestione completa dei pagamenti utilizza l'interfaccia CLI</em></small></p>
+</details>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Set default due date (30 days from now)
+    document.addEventListener('DOMContentLoaded', function() {
+        const scadenzaInput = document.querySelector('input[name="data_scadenza"]');
+        if (scadenzaInput) {
+            const defaultDate = new Date();
+            defaultDate.setDate(defaultDate.getDate() + 30);
+            scadenzaInput.value = defaultDate.toISOString().split('T')[0];
+        }
+    });
+    
+    // Edit pagamento function
+    function editPagamento(id, clienteNome, tipo, dataScadenza, importoPrevisto, ricorrenza, importoVariabile, descrizione) {
+        // Set form action for the specific payment
+        document.getElementById('edit-form').action = `/pagamenti/${id}/edit`;
+        
+        // Find and set cliente
+        const clienteSelect = document.getElementById('edit_cliente_id');
+        Array.from(clienteSelect.options).forEach(option => {
+            if (option.text === clienteNome) {
+                option.selected = true;
+            }
+        });
+        
+        // Set other fields
+        document.getElementById('edit_tipo').value = tipo;
+        document.getElementById('edit_data_scadenza').value = dataScadenza;
+        document.getElementById('edit_importo_previsto').value = importoPrevisto || '';
+        document.getElementById('edit_ricorrenza').value = ricorrenza;
+        document.getElementById('edit_importo_variabile').checked = importoVariabile === 'true';
+        document.getElementById('edit_descrizione').value = descrizione;
+        
+        // Show modal
+        document.getElementById('edit-modal').showModal();
+    }
+    
+    // Handle edit buttons with event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Edit form submission handler
+        const editForm = document.getElementById('edit-form');
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
+                // Ensure the action is set
+                if (!this.action || this.action.endsWith('/edit')) {
+                    console.log('Form action:', this.action);
+                }
+                
+                // Add loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.textContent = '💾 Salvando...';
+                    submitBtn.disabled = true;
+                }
+            });
+        }
+        
+        // Edit button click handlers
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const id = this.dataset.id;
+                const cliente = this.dataset.cliente;
+                const tipo = this.dataset.tipo;
+                const scadenza = this.dataset.scadenza;
+                const importo = this.dataset.importo;
+                const ricorrenza = this.dataset.ricorrenza;
+                const variabile = this.dataset.variabile;
+                const descrizione = this.dataset.descrizione;
+                
+                editPagamento(id, cliente, tipo, scadenza, importo, ricorrenza, variabile, descrizione);
+            });
+        });
+    });
+    
+    // Filter pagamenti function
+    function filterPagamenti() {
+        const clienteFilter = document.getElementById('filter-cliente').value.toLowerCase();
+        const statoFilter = document.getElementById('filter-stato').value;
+        const tipoFilter = document.getElementById('filter-tipo').value;
+        
+        const rows = document.querySelectorAll('#pagamenti-table tbody tr');
+        
+        rows.forEach(row => {
+            const cliente = row.dataset.cliente.toLowerCase();
+            const stato = row.dataset.stato;
+            const tipo = row.dataset.tipo;
+            
+            const matchCliente = !clienteFilter || cliente.includes(clienteFilter);
+            const matchStato = !statoFilter || stato === statoFilter;
+            const matchTipo = !tipoFilter || tipo === tipoFilter;
+            
+            if (matchCliente && matchStato && matchTipo) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update visible count
+        const visibleRows = document.querySelectorAll('#pagamenti-table tbody tr[style=""]').length;
+        const totalRows = rows.length;
+        
+        // Update header count
+        const header = document.querySelector('h2');
+        if (visibleRows === totalRows) {
+            header.textContent = `📋 Pagamenti (${totalRows})`;
+        } else {
+            header.textContent = `📋 Pagamenti (${visibleRows}/${totalRows})`;
+        }
+    }
+    
+    // Auto-hide importo variabile when no ricorrenza
+    document.querySelector('select[name="ricorrenza"]').addEventListener('change', function() {
+        const importoVariabileDiv = document.querySelector('input[name="importo_variabile"]').closest('div');
+        if (this.value === '') {
+            importoVariabileDiv.style.display = 'none';
+        } else {
+            importoVariabileDiv.style.display = 'block';
+        }
+    });
+    
+    // Add loading animation to forms
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+            const button = this.querySelector('button[type="submit"]');
+            if (button) {
+                button.textContent = '⏳ Loading...';
+                button.disabled = true;
+                this.classList.add('loading');
+            }
+        });
+    });
+    
+    // Add hover effects to stat cards
+    document.querySelectorAll('.stat-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+        });
+    });
+    
+    // Enhanced CSS for beautiful styling
+    const style = document.createElement('style');
+    style.textContent = `
+        /* === DASHBOARD GRID ENHANCED === */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #007bff, #6610f2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #495057, #212529);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* === TABLE ENHANCED STYLING === */
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            background: white;
+        }
+        
+        .table-compact {
+            margin: 0;
+        }
+        
+        .table-compact th {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 1rem 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+        
+        .table-compact td {
+            vertical-align: middle;
+            font-size: 0.9rem;
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .table-compact tbody tr {
+            transition: all 0.2s ease;
+        }
+        
+        .table-compact tbody tr:nth-child(even) {
+            background-color: rgba(0,0,0,0.015);
+        }
+        
+        .table-compact tbody tr:hover {
+            background-color: rgba(0,123,255,0.04);
+            transform: scale(1.005);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        /* === OVERDUE AND STATUS STYLING === */
+        .overdue {
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.06) 0%, rgba(220, 53, 69, 0.02) 100%) !important;
+            border-left: 4px solid #dc3545;
+            animation: pulseOverdue 2s infinite;
+        }
+        
+        .due-soon {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.06) 0%, rgba(255, 193, 7, 0.02) 100%) !important;
+            border-left: 4px solid #ffc107;
+        }
+        
+        @keyframes pulseOverdue {
+            0%, 100% { border-left-width: 4px; }
+            50% { border-left-width: 6px; }
+        }
+        
+        /* === BUTTON GROUPS ENHANCED === */
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .button-group button {
+            margin: 0;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        
+        .button-group button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .button-group button[style*="color: #dc3545"] {
+            border-color: #dc3545;
+        }
+        
+        .button-group button[style*="color: #dc3545"]:hover {
+            background-color: #dc3545;
+            color: white !important;
+        }
+        
+        /* === TAG STYLING === */
+        .tag {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,123,255,0.3);
+        }
+        
+        /* === DETAILS AND FORMS ENHANCED === */
+        details {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        details summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 1rem;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid transparent;
+        }
+        
+        details summary:hover {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            color: #007bff;
+        }
+        
+        details[open] summary {
+            border-bottom-color: #e9ecef;
+        }
+        
+        details > div {
+            padding: 1.5rem;
+        }
+        
+        /* === ALERT ENHANCED === */
+        .alert-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #b8daff 100%);
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        /* === FORM IMPROVEMENTS === */
+        input, select, textarea {
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+        }
+        
+        /* === RESPONSIVE IMPROVEMENTS === */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            
+            .stat-card {
+                padding: 1.5rem 1rem;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .button-group button {
+                font-size: 0.75rem;
+                padding: 0.3rem 0.6rem;
+            }
+        }
+        
+        /* === LOADING STATES === */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        /* === PAGINATION HINT === */
+        .table-responsive::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #007bff, transparent);
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

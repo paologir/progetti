@@ -69,8 +69,8 @@
         <tbody>
         {% for todo in todos %}
         <tr {% if todo.is_overdue %}class="overdue"{% endif %}>
-            <td>
-                <span class="priority-{% if todo.priorita == 1 %}high{% elif todo.priorita == -1 %}low{% else %}normal{% endif %}">
+            <td style="text-align: center;">
+                <span class="priority-badge priority-{% if todo.priorita == 1 %}high{% elif todo.priorita == -1 %}low{% else %}normal{% endif %}">
                     {{ todo.priorita_text }}
                 </span>
             </td>
@@ -91,17 +91,17 @@
                 {% if todo.scadenza %}
                     <strong>{{ todo.scadenza.strftime('%d/%m/%Y') }}</strong>
                     {% if todo.is_overdue %}
-                        <br><small style="color: #dc3545;">
+                        <br><span class="date-badge date-overdue">
                             {% set giorni_ritardo = (today - todo.scadenza).days %}
-                            {{ giorni_ritardo }} giorni di ritardo
-                        </small>
+                            🔴 +{{ giorni_ritardo }}gg
+                        </span>
                     {% elif todo.scadenza == today %}
-                        <br><small style="color: #ffc107;">Scade oggi</small>
+                        <br><span class="date-badge date-today">⚠️ Oggi</span>
                     {% elif (today - todo.scadenza).days >= -3 and (today - todo.scadenza).days < 0 %}
-                        <br><small style="color: #fd7e14;">Scade presto</small>
+                        <br><span class="date-badge date-soon">📅 {{ -(today - todo.scadenza).days }}gg</span>
                     {% endif %}
                 {% else %}
-                    <small>-</small>
+                    <small style="color: #6c757d;">-</small>
                 {% endif %}
             </td>
             <td>
@@ -114,11 +114,29 @@
                 {% endif %}
             </td>
             <td>
-                <form method="post" action="/todos/{{ todo.id }}/complete" style="display: inline;">
-                    <button type="submit" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="return confirm('Completare questo todo?')">
-                        ✅ Completa
+                <div class="button-group-compact">
+                    <form method="post" action="/todos/{{ todo.id }}/complete" style="display: inline;">
+                        <button type="submit" class="btn-icon btn-success" onclick="return confirm('Completare questo todo?')" title="Completa todo">
+                            ✅
+                        </button>
+                    </form>
+                    
+                    <button type="button" class="btn-icon btn-primary edit-btn" title="Modifica todo"
+                            data-id="{{ todo.id }}"
+                            data-titolo="{{ todo.titolo }}"
+                            data-descrizione="{{ todo.descrizione or '' }}"
+                            data-cliente-id="{{ todo.cliente_id or '' }}"
+                            data-priorita="{{ todo.priorita }}"
+                            data-scadenza="{{ todo.scadenza.strftime('%Y-%m-%d') if todo.scadenza else '' }}">
+                        ✏️
                     </button>
-                </form>
+                    
+                    <form method="post" action="/todos/{{ todo.id }}/delete" style="display: inline;" onsubmit="return confirm('Eliminare questo todo?')">
+                        <button type="submit" class="btn-icon btn-danger" title="Elimina todo">
+                            🗑️
+                        </button>
+                    </form>
+                </div>
             </td>
         </tr>
         {% endfor %}
@@ -244,7 +262,42 @@
         // Non riordiniamo automaticamente per preservare l'ordine del server
     }
     
-    // CSS animation per pulse
+    // Edit todo function
+    function editTodo(id, titolo, descrizione, clienteId, priorita, scadenza) {
+        // Set form action for the specific todo
+        document.getElementById('edit-form').action = `/todos/${id}/edit`;
+        
+        // Set form values
+        document.getElementById('edit_titolo').value = titolo;
+        document.getElementById('edit_descrizione').value = descrizione;
+        document.getElementById('edit_cliente_id').value = clienteId;
+        document.getElementById('edit_priorita').value = priorita;
+        document.getElementById('edit_scadenza').value = scadenza;
+        
+        // Show modal
+        document.getElementById('edit-modal').showModal();
+    }
+    
+    // Handle edit buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const id = this.dataset.id;
+                const titolo = this.dataset.titolo;
+                const descrizione = this.dataset.descrizione;
+                const clienteId = this.dataset.clienteId;
+                const priorita = this.dataset.priorita;
+                const scadenza = this.dataset.scadenza;
+                
+                editTodo(id, titolo, descrizione, clienteId, priorita, scadenza);
+            });
+        });
+    });
+    
+    // CSS animation per pulse and button groups
     const style = document.createElement('style');
     style.textContent = `
         @keyframes pulse {
@@ -252,7 +305,253 @@
             50% { background-color: rgba(220, 53, 69, 0.2); }
             100% { background-color: rgba(220, 53, 69, 0.1); }
         }
+        
+        .button-group-compact {
+            display: flex;
+            gap: 0.25rem;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+            margin: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+        
+        .btn-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .btn-success {
+            color: #28a745;
+            border-color: #28a745;
+        }
+        
+        .btn-success:hover {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-primary {
+            color: #007bff;
+            border-color: #007bff;
+        }
+        
+        .btn-primary:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-danger {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        /* Priority badges */
+        .priority-badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+        
+        .priority-high {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+        }
+        
+        .priority-normal {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+            box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+        }
+        
+        .priority-low {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        }
+        
+        /* Date badges */
+        .date-badge {
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .date-overdue {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            box-shadow: 0 1px 3px rgba(220, 53, 69, 0.4);
+            animation: pulse-danger 2s infinite;
+        }
+        
+        .date-today {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+            box-shadow: 0 1px 3px rgba(255, 193, 7, 0.4);
+            animation: pulse-warning 2s infinite;
+        }
+        
+        .date-soon {
+            background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+            color: white;
+            box-shadow: 0 1px 3px rgba(253, 126, 20, 0.4);
+        }
+        
+        @keyframes pulse-danger {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes pulse-warning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* Table improvements */
+        .table-compact td {
+            padding: 0.5rem 0.75rem;
+            vertical-align: middle;
+        }
+        
+        .table-compact tr:hover {
+            background-color: rgba(0,123,255,0.04);
+            transform: scale(1.002);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        /* Overdue styling enhancement */
+        .overdue {
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.06) 0%, rgba(220, 53, 69, 0.02) 100%);
+            border-left: 4px solid #dc3545;
+            animation: pulseOverdue 2s infinite;
+        }
+        
+        @keyframes pulseOverdue {
+            0%, 100% { border-left-width: 4px; }
+            50% { border-left-width: 6px; }
+        }
+        
+        /* Compact sidebar stats */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
     `;
     document.head.appendChild(style);
 </script>
+
+<!-- Edit Modal -->
+<dialog id="edit-modal">
+    <article style="width: 600px; max-width: 90vw;">
+        <header>
+            <button aria-label="Close" rel="prev" onclick="document.getElementById('edit-modal').close()"></button>
+            <h3>✏️ Modifica Todo</h3>
+        </header>
+        
+        <form id="edit-form" method="post" action="">
+            <div class="grid">
+                <div>
+                    <label for="edit_titolo">Titolo *</label>
+                    <input type="text" name="titolo" id="edit_titolo" required>
+                </div>
+                
+                <div>
+                    <label for="edit_cliente_id">Cliente</label>
+                    <select name="cliente_id" id="edit_cliente_id">
+                        <option value="">Nessun cliente specifico</option>
+                        {% for cliente in clienti %}
+                        <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div>
+                    <label for="edit_priorita">Priorità</label>
+                    <select name="priorita" id="edit_priorita">
+                        <option value="0">🟡 Normale</option>
+                        <option value="1">🔴 Alta</option>
+                        <option value="-1">🟢 Bassa</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="edit_scadenza">Scadenza</label>
+                    <input type="date" name="scadenza" id="edit_scadenza">
+                </div>
+            </div>
+            
+            <label for="edit_descrizione">Descrizione</label>
+            <textarea name="descrizione" id="edit_descrizione" rows="2"></textarea>
+            
+            <footer style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="secondary" onclick="document.getElementById('edit-modal').close()" style="margin-right: 0.5rem;">
+                    Annulla
+                </button>
+                <button type="submit" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; color: white;">
+                    💾 Salva Modifiche
+                </button>
+            </footer>
+        </form>
+    </article>
+</dialog>
+
 {% endblock %}

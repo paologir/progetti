@@ -1,0 +1,113 @@
+# Clienti CRM - Configuration File
+# Tutte le configurazioni del sistema sono gestite tramite questo file
+# È possibile fare override tramite environment variables
+
+[app]
+name = "Clienti CRM"
+version = "1.0.0"
+description = "Sistema CRM per consulente digital marketing"
+author = "Paolo Gironi"
+
+[database]
+# Path del database SQLite (relativo alla root del progetto)
+path = "database.db"
+# Echo delle query SQL per debug (true/false)
+echo = false
+# Timeout connessioni in secondi
+timeout = 30
+
+[server]
+# Configurazioni server web
+host = "127.0.0.1"
+port = 8080
+# Modalità debug per FastAPI
+debug = false
+# Directory files statici web
+static_dir = "web"
+# Directory templates Jinja2
+templates_dir = "web/templates"
+
+[backup]
+# Backup automatico abilitato
+auto_enabled = true
+# Intervallo backup automatico in ore
+auto_interval_hours = 24
+# Directory backup (relativa alla root)
+directory = "data/backups"
+# Numero massimo backup da tenere
+max_backups = 30
+# Compressione backup (true/false)
+compress = true
+
+[export]
+# Directory default per export Obsidian
+obsidian_default_path = ""
+# Includi todo completati negli export
+include_completed_todos = false
+# Directory template Obsidian
+templates_dir = "templates/obsidian"
+
+[business]
+# Configurazioni business default
+default_hourly_rate = 50.0
+# Percentuale rivalsa previdenziale
+rivalsa_percentage = 4.0
+# Valuta utilizzata
+currency = "EUR"
+# Simbolo valuta
+currency_symbol = "€"
+
+[time_tracking]
+# Timer automatico pausa dopo N minuti di inattività
+auto_pause_minutes = 30
+# Arrotondamento minuti timer (1, 5, 10, 15, 30)
+round_minutes = 5
+# Salvataggio automatico timer ogni N minuti
+auto_save_minutes = 5
+
+[notifications]
+# Alert todo in scadenza (giorni prima)
+todo_warning_days = 3
+# Alert scadenze fatturazione (giorni prima)
+billing_warning_days = 7
+# Notifiche desktop abilitate
+desktop_enabled = false
+
+[logging]
+# Livello logging (DEBUG, INFO, WARNING, ERROR)
+level = "INFO"
+# File log principale
+file = "logs/clienti.log"
+# Dimensione massima file log in MB
+max_file_size_mb = 10
+# Numero file backup da tenere
+backup_count = 5
+# Log operazioni web
+web_enabled = true
+# Log timer tracking
+timer_enabled = true
+
+[cli]
+# Colori CLI abilitati
+colors_enabled = true
+# Progress bars abilitate
+progress_bars = true
+# Conferme interattive
+interactive_confirmations = true
+# Numero righe default per paginazione
+pagination_size = 20
+
+[security]
+# Log operazioni sensibili
+audit_enabled = true
+# Backup criptati (future)
+encrypted_backups = false
+# Timeout sessioni web in minuti
+web_session_timeout = 60
+
+[integrations]
+# Path per integrazioni future
+calendar_enabled = false
+email_enabled = false
+# API keys (da environment variables)
+# GOOGLE_API_KEY, OUTLOOK_API_KEY, etc.

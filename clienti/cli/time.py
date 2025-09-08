@@ -16,6 +16,9 @@ from pathlib import Path
 
 from core.database import SessionLocal
 from core.models import Cliente, TimeTracking, Configurazione
+from core.logger import get_logger
+
+logger = get_logger()
 
 console = Console()
 
@@ -125,6 +128,8 @@ def start_timer(
         cliente.data_ultima_attivita = datetime.now()
         db.commit()
         
+        logger.log_timer_start(cliente.nome, task or "")
+        
         console.print(f"▶️ Timer avviato per [bold green]{cliente.nome}[/bold green]", style="green")
         if task:
             console.print(f"📝 Attività: {task}")
@@ -147,6 +152,8 @@ def _stop_timer(session: TimeTracking, db: Session):
     compensation = session.compenso
     
     clear_timer_state()
+    
+    logger.log_timer_stop(session.cliente.nome, f"{duration_hours:.2f}h", compensation)
     
     console.print(f"⏹️ Timer fermato per [bold]{session.cliente.nome}[/bold]")
     console.print(f"⏱️ Durata: {duration_hours:.2f}h")
@@ -490,6 +497,213 @@ def show_unbilled():
         console.print(f"❌ Errore ore non fatturate: {e}", style="red")
     finally:
         db.close()
+
+def edit_session(session_id: int):
+    """Modifica una sessione di time tracking"""
+    db = SessionLocal()
+    
+    try:
+        session = db.query(TimeTracking).filter(TimeTracking.id == session_id).first()
+        if not session:
+            console.print(f"❌ Sessione con ID {session_id} non trovata", style="red")
+            return
+        
+        if session.fine is None:
+            console.print("⚠️ Non puoi modificare una sessione attiva. Fermala prima.", style="yellow")
+            return
+        
+        console.print(f"✏️ [bold]Modifica Sessione ID {session_id}[/bold]", style="blue")
+        console.print(f"Cliente: {session.cliente.nome}")
+        console.print(f"Data: {session.inizio.strftime('%d/%m/%Y')}")
+        console.print(f"Orario: {session.inizio.strftime('%H:%M')} - {session.fine.strftime('%H:%M') if session.fine else 'N/A'}")
+        console.print(f"Durata: {session.durata_ore:.2f}h")
+        console.print(f"Attività: {session.descrizione or 'N/A'}")
+        console.print(f"Tariffa: €{session.tariffa_oraria}/h")
+        console.print(f"Note: {session.note or 'Nessuna nota'}")
+        
+        import questionary
+        
+        # Modifica descrizione
+        new_descrizione = questionary.text(
+            "Nuova descrizione (lascia vuoto per non modificare):",
+            default=session.descrizione or ""
+        ).ask()
+        
+        # Modifica tariffa oraria
+        new_tariffa = questionary.text(
+            f"Nuova tariffa oraria (attuale: €{session.tariffa_oraria}/h):",
+            default=str(session.tariffa_oraria)
+        ).ask()
+        
+        try:
+            new_tariffa = float(new_tariffa)
+        except (ValueError, TypeError):
+            console.print("❌ Tariffa non valida, mantengo quella attuale", style="yellow")
+            new_tariffa = session.tariffa_oraria
+        
+        # Modifica note
+        new_note = questionary.text(
+            "Nuove note (lascia vuoto per non modificare):",
+            default=session.note or ""
+        ).ask()
+        
+        # Modifica stato fatturato
+        fatturato_attuale = "Sì" if session.fatturato else "No"
+        new_fatturato = questionary.select(
+            f"Fatturato (attuale: {fatturato_attuale}):",
+            choices=["Sì", "No"],
+            default=fatturato_attuale
+        ).ask()
+        
+        # Applica modifiche
+        session.descrizione = new_descrizione if new_descrizione else None
+        session.tariffa_oraria = new_tariffa
+        session.note = new_note if new_note else None
+        session.fatturato = (new_fatturato == "Sì")
+        
+        db.commit()
+        
+        console.print(f"✅ Sessione ID {session_id} aggiornata con successo", style="green")
+        console.print(f"Nuovo compenso: €{session.compenso:.2f}")
+        
+    except KeyboardInterrupt:
+        console.print("❌ Operazione annullata", style="red")
+    except Exception as e:
+        console.print(f"❌ Errore modifica sessione: {e}", style="red")
+        db.rollback()
+    finally:
+        db.close()
+
+
+def delete_session(session_id: int):
+    """Elimina una sessione di time tracking"""
+    db = SessionLocal()
+    
+    try:
+        session = db.query(TimeTracking).filter(TimeTracking.id == session_id).first()
+        if not session:
+            console.print(f"❌ Sessione con ID {session_id} non trovata", style="red")
+            return
+        
+        if session.fine is None:
+            console.print("⚠️ Non puoi eliminare una sessione attiva. Fermala prima.", style="yellow")
+            return
+        
+        # Mostra dettagli della sessione da eliminare
+        console.print(f"🗑️ [bold red]Elimina Sessione ID {session_id}[/bold red]")
+        console.print(f"Cliente: {session.cliente.nome}")
+        console.print(f"Data: {session.inizio.strftime('%d/%m/%Y')}")
+        console.print(f"Orario: {session.inizio.strftime('%H:%M')} - {session.fine.strftime('%H:%M')}")
+        console.print(f"Durata: {session.durata_ore:.2f}h")
+        console.print(f"Attività: {session.descrizione or 'N/A'}")
+        console.print(f"Compenso: €{session.compenso:.2f}")
+        
+        import questionary
+        
+        # Doppia conferma
+        if not questionary.confirm("⚠️ Sei sicuro di voler eliminare questa sessione?", default=False).ask():
+            console.print("❌ Operazione annullata", style="yellow")
+            return
+        
+        if not questionary.confirm("⚠️ ATTENZIONE: Questa azione è irreversibile! Confermi l'eliminazione?", default=False).ask():
+            console.print("❌ Operazione annullata", style="yellow")
+            return
+        
+        # Elimina la sessione
+        db.delete(session)
+        db.commit()
+        
+        console.print(f"✅ Sessione ID {session_id} eliminata con successo", style="green")
+        
+    except KeyboardInterrupt:
+        console.print("❌ Operazione annullata", style="red")
+    except Exception as e:
+        console.print(f"❌ Errore eliminazione sessione: {e}", style="red")
+        db.rollback()
+    finally:
+        db.close()
+
+
+def list_sessions(
+    cliente_nome: Optional[str] = None,
+    limit: int = 10,
+    show_active: bool = False
+):
+    """Lista sessioni di time tracking con ID per edit/delete"""
+    db = SessionLocal()
+    
+    try:
+        query = db.query(TimeTracking)
+        
+        # Filter by client if specified
+        if cliente_nome:
+            cliente = get_cliente_by_name(cliente_nome, db)
+            if not cliente:
+                console.print(f"❌ Cliente '{cliente_nome}' non trovato", style="red")
+                return
+            query = query.filter(TimeTracking.cliente_id == cliente.id)
+        
+        # Filter by active/completed sessions
+        if show_active:
+            query = query.filter(TimeTracking.fine.is_(None))
+        else:
+            query = query.filter(TimeTracking.fine.isnot(None))
+        
+        sessions = query.order_by(TimeTracking.inizio.desc()).limit(limit).all()
+        
+        if not sessions:
+            status_text = "attive" if show_active else "completate"
+            console.print(f"📅 Nessuna sessione {status_text} trovata", style="dim")
+            return
+        
+        status_text = "Attive" if show_active else f"Ultime {len(sessions)} completate"
+        table = Table(title=f"⏱️ Sessioni {status_text}")
+        table.add_column("ID", width=4, justify="right", style="cyan")
+        table.add_column("Data", style="dim")
+        table.add_column("Cliente", style="white")
+        table.add_column("Attività", style="green")
+        table.add_column("Durata", style="yellow", justify="right")
+        table.add_column("Compenso", style="magenta", justify="right")
+        table.add_column("Fatturato", style="red", justify="center")
+        
+        for session in sessions:
+            if show_active:
+                # For active sessions, show elapsed time
+                elapsed = datetime.now() - session.inizio
+                duration_display = f"{elapsed.total_seconds()/3600:.1f}h*"
+                compenso_display = f"€{(elapsed.total_seconds()/3600) * session.tariffa_oraria:.2f}*"
+            else:
+                duration_display = f"{session.durata_ore:.1f}h"
+                compenso_display = f"€{session.compenso:.2f}"
+            
+            fatturato_icon = "✅" if session.fatturato else "⏳"
+            
+            table.add_row(
+                str(session.id),
+                session.inizio.strftime('%d/%m/%Y'),
+                session.cliente.nome,
+                session.descrizione or "-",
+                duration_display,
+                compenso_display,
+                fatturato_icon
+            )
+        
+        console.print(table)
+        
+        if show_active:
+            console.print("* = valori stimati per sessioni attive")
+        
+        # Show usage commands
+        if not show_active:
+            console.print("\n💡 [dim]Comandi utili:[/dim]")
+            console.print("[dim]  clienti time edit <ID>    - Modifica sessione[/dim]")  
+            console.print("[dim]  clienti time delete <ID>  - Elimina sessione[/dim]")
+        
+    except Exception as e:
+        console.print(f"❌ Errore lista sessioni: {e}", style="red")
+    finally:
+        db.close()
+
 
 def export_timesheet_csv(
     output_path: Optional[str] = None,

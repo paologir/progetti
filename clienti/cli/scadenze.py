@@ -457,9 +457,11 @@ TOTALE DOCUMENTO: €{totale_documento:.2f}"""
 def aggiorna_scadenza(
     scadenza_id: int,
     importo: Optional[float] = typer.Option(None, "--importo", "-i", help="Nuovo importo"),
-    descrizione: Optional[str] = typer.Option(None, "--desc", "-d", help="Nuova descrizione")
+    descrizione: Optional[str] = typer.Option(None, "--desc", "-d", help="Nuova descrizione"),
+    ricorrenza: Optional[str] = typer.Option(None, "--ricorrenza", "-r", help="Nuova ricorrenza (mensile/bimestrale/trimestrale/semestrale/annuale/nessuna)"),
+    data_scadenza: Optional[str] = typer.Option(None, "--data", help="Nuova data scadenza (YYYY-MM-DD)")
 ):
-    """Aggiorna importo e/o descrizione di una scadenza"""
+    """Aggiorna importo, descrizione, ricorrenza e/o data scadenza di un pagamento"""
     db = SessionLocal()
     
     try:
@@ -496,8 +498,40 @@ def aggiorna_scadenza(
             scadenza.descrizione = descrizione
             changes.append(f"Descrizione: '{old_desc}' → '{descrizione}'")
         
+        # Update ricorrenza
+        if ricorrenza is not None:
+            old_ricorrenza = scadenza.ricorrenza or "Nessuna"
+            
+            # Validate ricorrenza values
+            valid_ricorrenze = ["mensile", "bimestrale", "trimestrale", "semestrale", "annuale", "nessuna", ""]
+            ricorrenza_lower = ricorrenza.lower() if ricorrenza else ""
+            
+            if ricorrenza_lower not in valid_ricorrenze:
+                console.print(f"❌ Ricorrenza non valida. Valori ammessi: {', '.join(valid_ricorrenze[:-2])}, nessuna", style="red")
+                return
+            
+            # Set ricorrenza (None for "nessuna" or empty)
+            new_ricorrenza = ricorrenza_lower if ricorrenza_lower and ricorrenza_lower != "nessuna" else None
+            scadenza.ricorrenza = new_ricorrenza
+            
+            new_ricorrenza_display = new_ricorrenza or "Nessuna"
+            changes.append(f"Ricorrenza: '{old_ricorrenza}' → '{new_ricorrenza_display.title()}'")
+        
+        # Update data_scadenza
+        if data_scadenza is not None:
+            old_data = scadenza.data_scadenza.strftime('%d/%m/%Y')
+            
+            try:
+                from datetime import datetime
+                new_data = datetime.strptime(data_scadenza, "%Y-%m-%d").date()
+                scadenza.data_scadenza = new_data
+                changes.append(f"Data scadenza: {old_data} → {new_data.strftime('%d/%m/%Y')}")
+            except ValueError:
+                console.print("❌ Formato data non valido. Usa YYYY-MM-DD (es: 2024-12-31)", style="red")
+                return
+        
         if not changes:
-            console.print("❌ Specifica almeno --importo o --desc", style="red")
+            console.print("❌ Specifica almeno --importo, --desc, --ricorrenza o --data", style="red")
             return
         
         db.commit()
@@ -687,6 +721,47 @@ def process_recurring_invoices():
 
     except Exception as e:
         console.print(f"❌ Errore processing ricorrenze: {e}", style="red")
+        db.rollback()
+    finally:
+        db.close()
+
+def delete_scadenza(scadenza_id: int):
+    """Elimina una scadenza/pagamento"""
+    db = SessionLocal()
+    try:
+        # Find scadenza by ID
+        scadenza = db.query(ScadenzeFatturazione).filter(ScadenzeFatturazione.id == scadenza_id).first()
+        
+        if not scadenza:
+            console.print(f"❌ Pagamento con ID {scadenza_id} non trovato", style="red")
+            return
+        
+        # Show scadenza details before deletion
+        console.print(f"\n📋 Dettagli pagamento da eliminare:")
+        console.print(f"   Cliente: {scadenza.cliente.nome}")
+        console.print(f"   Tipo: {scadenza.tipo}")
+        console.print(f"   Importo: €{scadenza.importo_previsto or 'N/A'}")
+        console.print(f"   Scadenza: {scadenza.data_scadenza.strftime('%d/%m/%Y')}")
+        console.print(f"   Descrizione: {scadenza.descrizione or 'N/A'}")
+        console.print(f"   Emessa: {'Sì' if scadenza.emessa else 'No'}")
+        if scadenza.emessa:
+            console.print(f"   Numero documento: {scadenza.numero_documento or 'N/A'}")
+            console.print(f"   Pagata: {'Sì' if scadenza.pagato else 'No'}")
+        
+        # Confirmation
+        import questionary
+        if questionary.confirm(
+            f"Sei sicuro di voler eliminare questo pagamento?",
+            default=False
+        ).ask():
+            db.delete(scadenza)
+            db.commit()
+            console.print(f"✅ Pagamento ID {scadenza_id} eliminato con successo", style="green")
+        else:
+            console.print("❌ Eliminazione annullata", style="yellow")
+            
+    except Exception as e:
+        console.print(f"❌ Errore durante eliminazione: {e}", style="red")
         db.rollback()
     finally:
         db.close()

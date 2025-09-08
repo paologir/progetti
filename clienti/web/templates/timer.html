@@ -69,6 +69,7 @@
                 <th>Tariffa</th>
                 <th>Compenso</th>
                 <th>Stato</th>
+                <th>Azioni</th>
             </tr>
         </thead>
         <tbody>
@@ -104,6 +105,25 @@
                     <span style="color: #ffc107;">⏳ Da fatturare</span>
                 {% endif %}
             </td>
+            <td>
+                <div class="button-group-compact">
+                    <button type="button" class="btn-icon btn-primary edit-session-btn" title="Modifica sessione"
+                            data-id="{{ sessione.id }}"
+                            data-cliente="{{ sessione.cliente.nome }}"
+                            data-descrizione="{{ sessione.descrizione or '' }}"
+                            data-tariffa="{{ sessione.tariffa_oraria }}"
+                            data-note="{{ sessione.note or '' }}"
+                            data-fatturato="{{ 'true' if sessione.fatturato else 'false' }}">
+                        ✏️
+                    </button>
+                    
+                    <form method="post" action="/timer/{{ sessione.id }}/delete" style="display: inline;" onsubmit="return confirm('Eliminare questa sessione di lavoro? L\'azione è irreversibile!')">
+                        <button type="submit" class="btn-icon btn-danger" title="Elimina sessione">
+                            🗑️
+                        </button>
+                    </form>
+                </div>
+            </td>
         </tr>
         {% endfor %}
         </tbody>
@@ -136,7 +156,7 @@
                 <li>✅ Avvia/ferma timer</li>
                 <li>✅ Visualizzazione sessioni recenti</li>
                 <li>✅ Timer live con compenso</li>
-                <li>❌ Modifica sessioni (solo CLI)</li>
+                <li>✅ Modifica/elimina sessioni</li>
             </ul>
         </div>
         <div>
@@ -144,6 +164,9 @@
             <ul>
                 <li><code>clienti time start "Cliente"</code></li>
                 <li><code>clienti time stop</code></li>
+                <li><code>clienti time list</code> - Lista sessioni con ID</li>
+                <li><code>clienti time edit &lt;ID&gt;</code> - Modifica sessione</li>
+                <li><code>clienti time delete &lt;ID&gt;</code> - Elimina sessione</li>
                 <li><code>clienti time today</code> - Report giornaliero</li>
                 <li><code>clienti time week</code> - Report settimanale</li>
                 <li><code>clienti time report --cliente "Nome"</code></li>
@@ -153,6 +176,110 @@
     </div>
     <p><small><em>Per gestione completa delle sessioni utilizza l'interfaccia CLI</em></small></p>
 </details>
+
+<!-- Button styles -->
+<style>
+.button-group-compact {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.btn-primary {
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #dc3545;
+    color: white;
+}
+</style>
+
+<!-- Edit Session Modal -->
+<dialog id="edit-session-modal">
+    <article style="width: 600px; max-width: 90vw;">
+        <header>
+            <button aria-label="Close" rel="prev" onclick="document.getElementById('edit-session-modal').close()"></button>
+            <h3>✏️ Modifica Sessione di Lavoro</h3>
+        </header>
+        
+        <form id="edit-session-form" method="post" action="">
+            <div class="grid">
+                <div>
+                    <label>Cliente</label>
+                    <input type="text" id="edit_cliente" readonly style="background: #f8f9fa; color: #6c757d;">
+                </div>
+                <div>
+                    <label for="edit_tariffa">Tariffa oraria (€/h) *</label>
+                    <input type="number" name="tariffa_oraria" id="edit_tariffa" step="0.50" min="0" required>
+                </div>
+            </div>
+            
+            <label for="edit_descrizione">Descrizione attività</label>
+            <input type="text" name="descrizione" id="edit_descrizione" placeholder="Es: Ottimizzazione campagne Google Ads">
+            
+            <div class="grid">
+                <div>
+                    <label for="edit_fatturato">Stato fatturazione</label>
+                    <select name="fatturato" id="edit_fatturato" required>
+                        <option value="false">⏳ Da fatturare</option>
+                        <option value="true">✅ Fatturato</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Compenso Aggiornato</label>
+                    <input type="text" id="edit_compenso" readonly style="background: #f8f9fa; color: #28a745; font-weight: bold;">
+                </div>
+            </div>
+            
+            <label for="edit_note">Note</label>
+            <textarea name="note" id="edit_note" rows="3" placeholder="Note aggiuntive sulla sessione..."></textarea>
+            
+            <footer style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="secondary" onclick="document.getElementById('edit-session-modal').close()" style="margin-right: 0.5rem;">
+                    Annulla
+                </button>
+                <button type="submit" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; color: white;">
+                    💾 Salva Modifiche
+                </button>
+            </footer>
+        </form>
+    </article>
+</dialog>
 
 {% endblock %}
 
@@ -204,5 +331,62 @@
             }
         });
     }
+    
+    // Edit session functionality
+    let currentSessionData = {};
+    
+    function editSession(id, cliente, descrizione, tariffa, note, fatturato) {
+        // Store current session data
+        currentSessionData = {
+            id, cliente, descrizione, tariffa, note, fatturato,
+            durata_ore: parseFloat(document.querySelector(`button[data-id="${id}"]`).closest('tr').querySelector('td:nth-child(4) strong').textContent.replace('h', ''))
+        };
+        
+        // Set form action for the specific session
+        document.getElementById('edit-session-form').action = `/timer/${id}/edit`;
+        
+        // Set form values
+        document.getElementById('edit_cliente').value = cliente;
+        document.getElementById('edit_descrizione').value = descrizione;
+        document.getElementById('edit_tariffa').value = tariffa;
+        document.getElementById('edit_note').value = note;
+        document.getElementById('edit_fatturato').value = fatturato;
+        
+        // Calculate and show initial compensation
+        updateCompensation();
+        
+        // Show modal
+        document.getElementById('edit-session-modal').showModal();
+    }
+    
+    function updateCompensation() {
+        const tariffa = parseFloat(document.getElementById('edit_tariffa').value) || 0;
+        const durata = currentSessionData.durata_ore || 0;
+        const compenso = tariffa * durata;
+        document.getElementById('edit_compenso').value = `€${compenso.toFixed(2)}`;
+    }
+    
+    // Handle edit buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add event listeners for edit buttons
+        document.querySelectorAll('.edit-session-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const id = this.dataset.id;
+                const cliente = this.dataset.cliente;
+                const descrizione = this.dataset.descrizione;
+                const tariffa = this.dataset.tariffa;
+                const note = this.dataset.note;
+                const fatturato = this.dataset.fatturato;
+                
+                editSession(id, cliente, descrizione, tariffa, note, fatturato);
+            });
+        });
+        
+        // Update compensation when tariffa changes
+        document.getElementById('edit_tariffa').addEventListener('input', updateCompensation);
+    });
 </script>
 {% endblock %}

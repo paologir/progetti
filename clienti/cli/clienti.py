@@ -297,5 +297,155 @@ def add_contact_to_client(cliente_id: int):
     finally:
         db.close()
 
+def edit_client(cliente_id: int):
+    """Modifica un cliente esistente"""
+    db = SessionLocal()
+    
+    try:
+        cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        if not cliente:
+            console.print(f"❌ Cliente con ID {cliente_id} non trovato", style="red")
+            return
+        
+        console.print(f"✏️ [bold]Modifica Cliente ID {cliente_id}[/bold]", style="blue")
+        nome_attuale = cliente.nome
+        if isinstance(nome_attuale, bytes):
+            nome_attuale = nome_attuale.decode('utf-8', errors='replace')
+        console.print(f"Nome attuale: {nome_attuale}")
+        
+        # Modifica nome
+        new_nome = questionary.text(
+            "Nuovo nome (lascia vuoto per non modificare):",
+            default=cliente.nome
+        ).ask()
+        
+        if not new_nome:
+            console.print("❌ Operazione annullata", style="red")
+            return
+        
+        # Modifica indirizzo
+        indirizzo_attuale = cliente.indirizzo or 'Non specificato'
+        if isinstance(indirizzo_attuale, bytes):
+            indirizzo_attuale = indirizzo_attuale.decode('utf-8', errors='replace')
+        console.print(f"Indirizzo attuale: {indirizzo_attuale}")
+        new_indirizzo = questionary.text(
+            "Nuovo indirizzo (lascia vuoto per non modificare):",
+            default=cliente.indirizzo or ""
+        ).ask()
+        
+        # Modifica stato
+        console.print(f"Stato attuale: {cliente.stato}")
+        new_stato = questionary.select(
+            "Nuovo stato:",
+            choices=[
+                questionary.Choice(title="🟢 Attivo", value="attivo"),
+                questionary.Choice(title="🟡 Prospect", value="prospect"), 
+                questionary.Choice(title="⏸️ In pausa", value="pausa"),
+                questionary.Choice(title="📦 Archiviato", value="archiviato")
+            ],
+            default=cliente.stato
+        ).ask()
+        
+        # Modifica note
+        note_attuali = cliente.note or 'Nessuna nota'
+        if isinstance(note_attuali, bytes):
+            note_attuali = note_attuali.decode('utf-8', errors='replace')
+        console.print(f"Note attuali: {note_attuali}")
+        new_note = questionary.text(
+            "Nuove note (lascia vuoto per non modificare):",
+            default=cliente.note or ""
+        ).ask()
+        
+        # Applica modifiche
+        cliente.nome = new_nome
+        cliente.indirizzo = new_indirizzo if new_indirizzo else None
+        cliente.note = new_note if new_note else None
+        cliente.stato = new_stato
+        
+        db.commit()
+        
+        console.print(f"✅ Cliente ID {cliente_id} aggiornato con successo", style="green")
+        console.print(f"Nuovo nome: {new_nome}")
+        
+    except KeyboardInterrupt:
+        console.print("❌ Operazione annullata", style="red")
+    finally:
+        db.close()
+
+
+def delete_client(cliente_id: int):
+    """Elimina un cliente"""
+    db = SessionLocal()
+    
+    try:
+        cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        if not cliente:
+            console.print(f"❌ Cliente con ID {cliente_id} non trovato", style="red")
+            return
+        
+        # Verifica dipendenze
+        from core.models import Intervento, Todo, ScadenzeFatturazione
+        
+        # Conta elementi collegati
+        interventi_count = db.query(Intervento).filter(Intervento.cliente_id == cliente_id).count()
+        todos_count = db.query(Todo).filter(Todo.cliente_id == cliente_id).count()
+        pagamenti_count = db.query(ScadenzeFatturazione).filter(ScadenzeFatturazione.cliente_id == cliente_id).count()
+        
+        # Mostra dettagli cliente
+        console.print(f"🗑️ [bold]Eliminazione Cliente ID {cliente_id}[/bold]", style="red")
+        console.print(f"Nome: {cliente.nome}")
+        console.print(f"Settore: {cliente.settore or 'N/A'}")
+        console.print(f"Stato: {cliente.stato}")
+        console.print(f"Data creazione: {cliente.data_creazione.strftime('%d/%m/%Y')}")
+        
+        # Mostra elementi collegati
+        if interventi_count > 0 or todos_count > 0 or pagamenti_count > 0:
+            console.print("\n⚠️ [bold yellow]ATTENZIONE: Questo cliente ha elementi collegati:[/bold yellow]")
+            if interventi_count > 0:
+                console.print(f"  • {interventi_count} interventi")
+            if todos_count > 0:
+                console.print(f"  • {todos_count} todo")
+            if pagamenti_count > 0:
+                console.print(f"  • {pagamenti_count} pagamenti/fatture")
+            console.print("\n[bold red]L'eliminazione cancellerà PERMANENTEMENTE tutti questi dati![/bold red]")
+        
+        # Doppia conferma
+        console.print(f"\n[bold red]Stai per eliminare '{cliente.nome}' e tutti i dati collegati.[/bold red]")
+        
+        confirm1 = questionary.confirm(
+            "⚠️ Sei sicuro di voler procedere?",
+            default=False
+        ).ask()
+        
+        if not confirm1:
+            console.print("❌ Operazione annullata", style="yellow")
+            return
+        
+        # Seconda conferma per sicurezza
+        confirm2 = questionary.text(
+            f'Per confermare, scrivi esattamente "{cliente.nome}":'
+        ).ask()
+        
+        if confirm2 != cliente.nome:
+            console.print("❌ Nome non corrispondente, operazione annullata", style="red")
+            return
+        
+        # Elimina (le foreign key si occupano della cascata)
+        db.delete(cliente)
+        db.commit()
+        
+        console.print(f"✅ Cliente '{cliente.nome}' eliminato con successo", style="green")
+        if interventi_count > 0 or todos_count > 0 or pagamenti_count > 0:
+            console.print(f"📊 Eliminati anche: {interventi_count} interventi, {todos_count} todo, {pagamenti_count} pagamenti", style="dim")
+        
+    except KeyboardInterrupt:
+        console.print("❌ Operazione annullata", style="red")
+    except Exception as e:
+        console.print(f"❌ Errore durante l'eliminazione: {e}", style="red")
+        db.rollback()
+    finally:
+        db.close()
+
+
 # Export functions for use in main CLI
-__all__ = ['list_clients', 'show_client', 'add_client', 'add_contact_to_client']
+__all__ = ['list_clients', 'show_client', 'add_client', 'add_contact_to_client', 'edit_client', 'delete_client']

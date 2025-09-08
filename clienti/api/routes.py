@@ -158,6 +158,50 @@ async def cliente_detail(request: Request, cliente_id: int, db: Session = Depend
     return templates.TemplateResponse("clienti/detail.html", context)
 
 
+# CLIENT EDIT/DELETE ROUTES
+
+@app.post("/clienti/{cliente_id}/edit")
+async def cliente_edit(
+    cliente_id: int,
+    nome: str = Form(...),
+    indirizzo: str = Form(""),
+    note: str = Form(""),
+    stato: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Modifica cliente"""
+    
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    # Update cliente fields
+    cliente.nome = nome
+    cliente.indirizzo = indirizzo if indirizzo else None
+    cliente.note = note if note else None
+    cliente.stato = stato
+    
+    db.commit()
+    
+    return RedirectResponse(url="/clienti", status_code=303)
+
+
+@app.post("/clienti/{cliente_id}/delete")
+async def cliente_delete(cliente_id: int, db: Session = Depends(get_db)):
+    """Elimina cliente"""
+    
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    # Le foreign key constraints si occupano di eliminare a cascata
+    # gli elementi collegati (interventi, todo, pagamenti)
+    db.delete(cliente)
+    db.commit()
+    
+    return RedirectResponse(url="/clienti", status_code=303)
+
+
 @app.get("/timer", response_class=HTMLResponse)
 async def timer_page(request: Request, db: Session = Depends(get_db)):
     """Pagina timer web"""
@@ -256,6 +300,52 @@ async def timer_status_api(db: Session = Depends(get_db)):
     return {"attivo": False}
 
 
+@app.post("/timer/{session_id}/edit")
+async def timer_session_edit(
+    session_id: int,
+    descrizione: str = Form(""),
+    tariffa_oraria: float = Form(...),
+    note: str = Form(""),
+    fatturato: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Modifica sessione di time tracking"""
+    
+    session = db.query(TimeTracking).filter(TimeTracking.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Sessione non trovata")
+    
+    if session.fine is None:
+        raise HTTPException(status_code=400, detail="Non puoi modificare una sessione attiva")
+    
+    # Update session fields
+    session.descrizione = descrizione if descrizione else None
+    session.tariffa_oraria = tariffa_oraria
+    session.note = note if note else None
+    session.fatturato = (fatturato == "true")
+    
+    db.commit()
+    
+    return RedirectResponse(url="/timer", status_code=303)
+
+
+@app.post("/timer/{session_id}/delete")
+async def timer_session_delete(session_id: int, db: Session = Depends(get_db)):
+    """Elimina sessione di time tracking"""
+    
+    session = db.query(TimeTracking).filter(TimeTracking.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Sessione non trovata")
+    
+    if session.fine is None:
+        raise HTTPException(status_code=400, detail="Non puoi eliminare una sessione attiva")
+    
+    db.delete(session)
+    db.commit()
+    
+    return RedirectResponse(url="/timer", status_code=303)
+
+
 @app.get("/todos", response_class=HTMLResponse)
 async def todos_page(request: Request, db: Session = Depends(get_db)):
     """Pagina gestione todos"""
@@ -323,3 +413,363 @@ async def todo_complete(todo_id: int, db: Session = Depends(get_db)):
     db.commit()
     
     return RedirectResponse(url="/todos", status_code=303)
+
+
+@app.post("/todos/{todo_id}/edit")
+async def todo_edit(
+    todo_id: int,
+    titolo: str = Form(...),
+    descrizione: str = Form(""),
+    cliente_id: int = Form(None),
+    priorita: int = Form(0),
+    scadenza: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Modifica todo"""
+    
+    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo non trovato")
+    
+    scadenza_date = None
+    if scadenza:
+        try:
+            scadenza_date = datetime.strptime(scadenza, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    
+    # Update todo fields
+    todo.titolo = titolo
+    todo.descrizione = descrizione or None
+    todo.cliente_id = cliente_id if cliente_id else None
+    todo.priorita = priorita
+    todo.scadenza = scadenza_date
+    
+    db.commit()
+    
+    return RedirectResponse(url="/todos", status_code=303)
+
+
+@app.post("/todos/{todo_id}/delete")
+async def todo_delete(todo_id: int, db: Session = Depends(get_db)):
+    """Elimina todo"""
+    
+    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo non trovato")
+    
+    db.delete(todo)
+    db.commit()
+    
+    return RedirectResponse(url="/todos", status_code=303)
+
+
+# PAGAMENTI ROUTES
+
+@app.get("/pagamenti", response_class=HTMLResponse)
+async def pagamenti_list(request: Request, db: Session = Depends(get_db)):
+    """Lista pagamenti con filtri"""
+    
+    today = date.today()
+    
+    # Tutti i pagamenti ordinati per scadenza
+    pagamenti = db.query(ScadenzeFatturazione).join(Cliente).order_by(
+        ScadenzeFatturazione.data_scadenza.desc()
+    ).all()
+    
+    # Statistiche
+    scadute = db.query(ScadenzeFatturazione).filter(
+        and_(
+            ScadenzeFatturazione.data_scadenza < today,
+            ScadenzeFatturazione.emessa == False
+        )
+    ).count()
+    
+    prossime = db.query(ScadenzeFatturazione).filter(
+        and_(
+            ScadenzeFatturazione.data_scadenza >= today,
+            ScadenzeFatturazione.data_scadenza <= today + timedelta(days=7),
+            ScadenzeFatturazione.emessa == False
+        )
+    ).count()
+    
+    emesse = db.query(ScadenzeFatturazione).filter(
+        ScadenzeFatturazione.emessa == True
+    ).count()
+    
+    # Lista clienti per form
+    clienti = db.query(Cliente).filter(Cliente.stato == 'attivo').order_by(Cliente.nome).all()
+    
+    # La proprietà is_overdue è già disponibile nel model ScadenzeFatturazione
+    
+    context = {
+        "request": request,
+        "pagamenti": pagamenti,
+        "clienti": clienti,
+        "scadute_count": scadute,
+        "prossime_count": prossime,
+        "emesse_count": emesse,
+        "totali_count": len(pagamenti),
+        "today": today,
+    }
+    
+    return templates.TemplateResponse("pagamenti.html", context)
+
+
+@app.post("/pagamenti/add")
+async def pagamento_add(
+    cliente_id: int = Form(...),
+    tipo: str = Form(...),
+    data_scadenza: str = Form(...),
+    importo_previsto: float = Form(None),
+    ricorrenza: str = Form(""),
+    importo_variabile: bool = Form(False),
+    descrizione: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Aggiungi nuovo pagamento"""
+    
+    try:
+        scadenza_date = datetime.strptime(data_scadenza, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato data non valido")
+    
+    pagamento = ScadenzeFatturazione(
+        cliente_id=cliente_id,
+        tipo=tipo,
+        data_scadenza=scadenza_date,
+        importo_previsto=importo_previsto if importo_previsto else None,
+        ricorrenza=ricorrenza if ricorrenza else None,
+        importo_fisso=not importo_variabile,
+        descrizione=descrizione or None
+    )
+    
+    db.add(pagamento)
+    db.commit()
+    
+    return RedirectResponse(url="/pagamenti", status_code=303)
+
+
+@app.post("/pagamenti/{pagamento_id}/emessa")
+async def pagamento_emessa(pagamento_id: int, db: Session = Depends(get_db)):
+    """Marca pagamento come emesso"""
+    
+    pagamento = db.query(ScadenzeFatturazione).filter(ScadenzeFatturazione.id == pagamento_id).first()
+    if not pagamento:
+        raise HTTPException(status_code=404, detail="Pagamento non trovato")
+    
+    pagamento.emessa = True
+    pagamento.data_emissione = date.today()
+    pagamento.numero_documento = f"DOC-{pagamento_id}-{date.today().strftime('%Y%m%d')}"
+    
+    db.commit()
+    
+    return RedirectResponse(url="/pagamenti", status_code=303)
+
+
+@app.post("/pagamenti/{pagamento_id}/pagata")  
+async def pagamento_pagata(pagamento_id: int, db: Session = Depends(get_db)):
+    """Marca pagamento come pagato"""
+    
+    pagamento = db.query(ScadenzeFatturazione).filter(ScadenzeFatturazione.id == pagamento_id).first()
+    if not pagamento:
+        raise HTTPException(status_code=404, detail="Pagamento non trovato")
+    
+    pagamento.pagato = True
+    pagamento.data_pagamento = date.today()
+    
+    db.commit()
+    
+    return RedirectResponse(url="/pagamenti", status_code=303)
+
+
+@app.get("/pagamenti/{pagamento_id}/edit")
+async def pagamento_edit_redirect(pagamento_id: int):
+    """Redirect GET requests to payments list"""
+    return RedirectResponse(url="/pagamenti", status_code=303)
+
+
+@app.post("/pagamenti/{pagamento_id}/edit")
+async def pagamento_edit(
+    pagamento_id: int,
+    cliente_id: int = Form(...),
+    tipo: str = Form(...),
+    data_scadenza: str = Form(...),
+    importo_previsto: float = Form(None),
+    ricorrenza: str = Form(""),
+    importo_variabile: bool = Form(False),
+    descrizione: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Modifica pagamento"""
+    
+    pagamento = db.query(ScadenzeFatturazione).filter(ScadenzeFatturazione.id == pagamento_id).first()
+    if not pagamento:
+        raise HTTPException(status_code=404, detail="Pagamento non trovato")
+    
+    try:
+        scadenza_date = datetime.strptime(data_scadenza, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato data non valido")
+    
+    # Update payment fields
+    pagamento.cliente_id = cliente_id
+    pagamento.tipo = tipo
+    pagamento.data_scadenza = scadenza_date
+    pagamento.importo_previsto = importo_previsto if importo_previsto else None
+    pagamento.ricorrenza = ricorrenza if ricorrenza else None
+    pagamento.importo_fisso = not importo_variabile
+    pagamento.descrizione = descrizione or None
+    
+    db.commit()
+    
+    return RedirectResponse(url="/pagamenti", status_code=303)
+
+
+@app.post("/pagamenti/{pagamento_id}/delete")
+async def pagamento_delete(pagamento_id: int, db: Session = Depends(get_db)):
+    """Elimina pagamento"""
+    
+    pagamento = db.query(ScadenzeFatturazione).filter(ScadenzeFatturazione.id == pagamento_id).first()
+    if not pagamento:
+        raise HTTPException(status_code=404, detail="Pagamento non trovato")
+    
+    db.delete(pagamento)
+    db.commit()
+    
+    return RedirectResponse(url="/pagamenti", status_code=303)
+
+
+# INTERVENTI ROUTES
+
+@app.get("/interventi", response_class=HTMLResponse)
+async def interventi_list(request: Request, db: Session = Depends(get_db)):
+    """Lista interventi"""
+    
+    # Tutti gli interventi ordinati per data (più recenti primi)
+    interventi = db.query(Intervento).join(Cliente).order_by(
+        desc(Intervento.data)
+    ).limit(50).all()  # Limitiamo a 50 per performance
+    
+    # Clienti attivi per filtri
+    clienti = db.query(Cliente).filter(Cliente.stato == 'attivo').order_by(Cliente.nome).all()
+    
+    # Statistiche
+    oggi = date.today()
+    oggi_start = datetime.combine(oggi, datetime.min.time())
+    oggi_end = datetime.combine(oggi, datetime.max.time())
+    
+    interventi_oggi = db.query(Intervento).filter(
+        and_(
+            Intervento.data >= oggi_start,
+            Intervento.data <= oggi_end
+        )
+    ).count()
+    
+    # Totale ore e valore del mese
+    mese_start = oggi.replace(day=1)
+    mese_start_dt = datetime.combine(mese_start, datetime.min.time())
+    
+    interventi_mese = db.query(Intervento).filter(
+        Intervento.data >= mese_start_dt
+    ).all()
+    
+    ore_mese = sum(i.durata_ore for i in interventi_mese if i.durata_minuti)
+    valore_mese = sum(i.costo for i in interventi_mese if i.costo)
+    
+    context = {
+        "request": request,
+        "interventi": interventi,
+        "clienti": clienti,
+        "interventi_oggi": interventi_oggi,
+        "ore_mese": round(ore_mese, 1),
+        "valore_mese": round(valore_mese, 2),
+        "today": oggi
+    }
+    
+    return templates.TemplateResponse("interventi.html", context)
+
+
+@app.post("/interventi/add")
+async def intervento_add(
+    cliente_id: int = Form(...),
+    tipo: str = Form(...),
+    titolo: str = Form(...),
+    descrizione: str = Form(""),
+    durata_minuti: int = Form(None),
+    costo: float = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Aggiungi nuovo intervento"""
+    
+    intervento = Intervento(
+        cliente_id=cliente_id,
+        tipo=tipo,
+        titolo=titolo,
+        descrizione=descrizione if descrizione else None,
+        durata_minuti=durata_minuti if durata_minuti else None,
+        costo=costo if costo else None
+    )
+    
+    db.add(intervento)
+    db.commit()
+    
+    return RedirectResponse(url="/interventi", status_code=303)
+
+
+@app.post("/interventi/{intervento_id}/edit")
+async def intervento_edit(
+    intervento_id: int,
+    cliente_id: int = Form(...),
+    tipo: str = Form(...),
+    titolo: str = Form(...),
+    descrizione: str = Form(""),
+    durata_minuti: int = Form(None),
+    costo: float = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Modifica intervento"""
+    
+    intervento = db.query(Intervento).filter(Intervento.id == intervento_id).first()
+    if not intervento:
+        raise HTTPException(status_code=404, detail="Intervento non trovato")
+    
+    # Update intervento fields
+    intervento.cliente_id = cliente_id
+    intervento.tipo = tipo
+    intervento.titolo = titolo
+    intervento.descrizione = descrizione if descrizione else None
+    intervento.durata_minuti = durata_minuti if durata_minuti else None
+    intervento.costo = costo if costo else None
+    
+    db.commit()
+    
+    return RedirectResponse(url="/interventi", status_code=303)
+
+
+@app.post("/interventi/{intervento_id}/delete")
+async def intervento_delete(intervento_id: int, db: Session = Depends(get_db)):
+    """Elimina intervento"""
+    
+    intervento = db.query(Intervento).filter(Intervento.id == intervento_id).first()
+    if not intervento:
+        raise HTTPException(status_code=404, detail="Intervento non trovato")
+    
+    db.delete(intervento)
+    db.commit()
+    
+    return RedirectResponse(url="/interventi", status_code=303)
+
+
+@app.post("/interventi/{intervento_id}/fatturato")
+async def intervento_fatturato(intervento_id: int, db: Session = Depends(get_db)):
+    """Marca intervento come fatturato"""
+    
+    intervento = db.query(Intervento).filter(Intervento.id == intervento_id).first()
+    if not intervento:
+        raise HTTPException(status_code=404, detail="Intervento non trovato")
+    
+    intervento.fatturato = True
+    db.commit()
+    
+    return RedirectResponse(url="/interventi", status_code=303)

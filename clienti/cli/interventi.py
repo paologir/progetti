@@ -208,6 +208,7 @@ def list_interventi(
             title += f" - Mese {month}"
             
         table = Table(title=title, show_header=True, header_style="bold magenta")
+        table.add_column("ID", width=4, justify="right")
         table.add_column("Data", width=12)
         table.add_column("Tipo", width=8, justify="center")
         table.add_column("Cliente", width=20)
@@ -255,6 +256,7 @@ def list_interventi(
                 total_cost += intervento.costo
             
             table.add_row(
+                str(intervento.id),
                 data_str,
                 tipo_icon,
                 cliente_nome,
@@ -540,5 +542,159 @@ def show_today_summary():
         if total_value > 0:
             console.print(f"  • Valore: €{total_value:.2f}")
         
+    finally:
+        db.close()
+
+
+def edit_intervento(intervento_id: int):
+    """Modifica un intervento esistente"""
+    db = SessionLocal()
+    
+    try:
+        # Trova l'intervento
+        intervento = db.query(Intervento).filter(Intervento.id == intervento_id).first()
+        if not intervento:
+            console.print(f"❌ Intervento con ID {intervento_id} non trovato", style="red")
+            return
+        
+        console.print(f"✏️ [bold]Modifica Intervento ID {intervento_id}[/bold]", style="blue")
+        console.print(f"Cliente: {intervento.cliente.nome}")
+        console.print(f"Titolo attuale: {intervento.titolo}")
+        
+        # Modifica titolo
+        new_titolo = questionary.text(
+            "Nuovo titolo (lascia vuoto per non modificare):",
+            default=intervento.titolo
+        ).ask()
+        
+        if not new_titolo:
+            console.print("❌ Operazione annullata", style="red")
+            return
+        
+        # Modifica tipo
+        current_tipo_name = {
+            'call': '📞 Chiamata', 'email': '📧 Email', 'meeting': '🤝 Meeting',
+            'lavoro': '💻 Lavoro', 'altro': '📝 Altro'
+        }.get(intervento.tipo, intervento.tipo)
+        
+        console.print(f"Tipo attuale: {current_tipo_name}")
+        change_tipo = questionary.confirm("Modificare il tipo?", default=False).ask()
+        
+        new_tipo = intervento.tipo
+        if change_tipo:
+            tipo_choices = [
+                {"name": "📞 Chiamata", "value": "call"},
+                {"name": "📧 Email", "value": "email"},
+                {"name": "🤝 Meeting", "value": "meeting"},
+                {"name": "💻 Lavoro", "value": "lavoro"},
+                {"name": "📝 Altro", "value": "altro"}
+            ]
+            
+            new_tipo = questionary.select(
+                "Nuovo tipo:",
+                choices=tipo_choices,
+                default=intervento.tipo
+            ).ask()
+            
+            if not new_tipo:
+                new_tipo = intervento.tipo
+        
+        # Modifica descrizione
+        console.print(f"Descrizione attuale: {intervento.descrizione or 'Nessuna'}")
+        new_descrizione = questionary.text(
+            "Nuova descrizione (lascia vuoto per non modificare):",
+            default=intervento.descrizione or ""
+        ).ask()
+        
+        # Modifica durata
+        durata_attuale = intervento.durata_minuti
+        console.print(f"Durata attuale: {durata_attuale or 'Non specificata'} minuti")
+        change_durata = questionary.confirm("Modificare la durata?", default=False).ask()
+        
+        new_durata = durata_attuale
+        if change_durata:
+            durata_str = questionary.text(
+                "Nuova durata in minuti (0 per rimuovere):",
+                default=str(durata_attuale or 0),
+                validate=lambda x: x.isdigit() or "Inserire un numero"
+            ).ask()
+            if durata_str:
+                new_durata = int(durata_str) if int(durata_str) > 0 else None
+        
+        # Modifica costo
+        costo_attuale = intervento.costo
+        console.print(f"Costo attuale: €{costo_attuale:.2f}" if costo_attuale else "Costo attuale: Non specificato")
+        change_costo = questionary.confirm("Modificare il costo?", default=False).ask()
+        
+        new_costo = costo_attuale
+        if change_costo:
+            costo_str = questionary.text(
+                "Nuovo costo in € (0 per rimuovere):",
+                default=str(costo_attuale or 0),
+                validate=lambda x: x.replace('.', '').replace(',', '').isdigit() or "Inserire un numero valido"
+            ).ask()
+            if costo_str:
+                new_costo = float(costo_str.replace(',', '.')) if float(costo_str.replace(',', '.')) > 0 else None
+        
+        # Applica modifiche
+        intervento.titolo = new_titolo
+        intervento.tipo = new_tipo
+        intervento.descrizione = new_descrizione if new_descrizione else None
+        intervento.durata_minuti = new_durata
+        intervento.costo = new_costo
+        
+        db.commit()
+        
+        console.print(f"✅ Intervento ID {intervento_id} aggiornato con successo", style="green")
+        console.print(f"Nuovo titolo: {new_titolo}")
+        
+    except KeyboardInterrupt:
+        console.print("❌ Operazione annullata", style="red")
+    finally:
+        db.close()
+
+
+def delete_intervento(intervento_id: int):
+    """Elimina un intervento"""
+    db = SessionLocal()
+    
+    try:
+        # Trova l'intervento
+        intervento = db.query(Intervento).filter(Intervento.id == intervento_id).first()
+        if not intervento:
+            console.print(f"❌ Intervento con ID {intervento_id} non trovato", style="red")
+            return
+        
+        # Mostra dettagli
+        console.print(f"🗑️ [bold]Eliminazione Intervento ID {intervento_id}[/bold]", style="red")
+        console.print(f"Cliente: {intervento.cliente.nome}")
+        console.print(f"Data: {intervento.data.strftime('%d/%m/%Y %H:%M')}")
+        console.print(f"Tipo: {intervento.tipo_icon} {intervento.tipo}")
+        console.print(f"Titolo: {intervento.titolo}")
+        if intervento.descrizione:
+            console.print(f"Descrizione: {intervento.descrizione}")
+        if intervento.durata_minuti:
+            console.print(f"Durata: {intervento.durata_minuti} minuti")
+        if intervento.costo:
+            console.print(f"Costo: €{intervento.costo:.2f}")
+        
+        # Conferma eliminazione
+        confirm = questionary.confirm(
+            "⚠️ Sei sicuro di voler eliminare questo intervento?",
+            default=False
+        ).ask()
+        
+        if not confirm:
+            console.print("❌ Operazione annullata", style="yellow")
+            return
+        
+        # Elimina
+        db.delete(intervento)
+        db.commit()
+        
+        console.print(f"✅ Intervento ID {intervento_id} eliminato con successo", style="green")
+        
+    except KeyboardInterrupt:
+        console.print("❌ Operazione annullata", style="red")
     finally:
         db.close()

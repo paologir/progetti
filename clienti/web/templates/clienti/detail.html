@@ -3,237 +3,973 @@
 {% block title %}{{ cliente.nome }} - Clienti CRM{% endblock %}
 
 {% block content %}
-<div class="nav-secondary">
-    <a href="/clienti">← Torna ai clienti</a>
-</div>
-
-<h1>👤 {{ cliente.nome }}</h1>
-
-<!-- Info cliente -->
-<div class="grid">
-    <div>
-        <h3>📋 Informazioni</h3>
-        <table>
-            <tbody>
-                <tr>
-                    <td><strong>Stato:</strong></td>
-                    <td>
-                        {% if cliente.stato == 'attivo' %}
-                            <span style="color: #28a745;">🟢 Attivo</span>
-                        {% elif cliente.stato == 'prospect' %}
-                            <span style="color: #ffc107;">🟡 Prospect</span>
-                        {% elif cliente.stato == 'pausa' %}
-                            <span style="color: #6c757d;">⏸️ Pausa</span>
-                        {% else %}
-                            {{ cliente.stato }}
-                        {% endif %}
-                    </td>
-                </tr>
-                <tr>
-                    <td><strong>P.IVA:</strong></td>
-                    <td>{{ cliente.piva or '-' }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Indirizzo:</strong></td>
-                    <td>{{ cliente.indirizzo_completo or '-' }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Tariffa oraria:</strong></td>
-                    <td>€{{ cliente.tariffa_oraria|int }}/h</td>
-                </tr>
-                {% if cliente.budget_mensile %}
-                <tr>
-                    <td><strong>Budget mensile:</strong></td>
-                    <td>€{{ cliente.budget_mensile|int }}</td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
-        
-        {% if cliente.tags_list %}
-        <h4>🏷️ Tags</h4>
-        <div>
-            {% for tag in cliente.tags_list %}
-                <span class="tag">{{ tag }}</span>
-            {% endfor %}
-        </div>
-        {% endif %}
-        
-        {% if cliente.note %}
-        <h4>📝 Note</h4>
-        <blockquote>{{ cliente.note }}</blockquote>
-        {% endif %}
+<!-- Header Navigation -->
+<div class="client-header">
+    <div class="header-navigation">
+        <a href="/clienti" class="back-link">← Clienti</a>
     </div>
     
-    <div>
-        <h3>📊 Statistiche</h3>
-        <div class="stat-card">
-            <span class="stat-number">{{ ore_totali }}h</span>
-            <div class="stat-label">Ore Totali</div>
+    <div class="client-title">
+        <div class="client-avatar">
+            <span>{{ cliente.nome[0].upper() }}</span>
         </div>
-        
-        <div class="stat-card" style="margin-top: 1rem;">
-            <span class="stat-number" style="color: #dc3545;">{{ ore_non_fatturate }}h</span>
-            <div class="stat-label">Da Fatturare</div>
-            <small>€{{ compenso_non_fatturato }}</small>
+        <div class="client-info">
+            <h1>{{ cliente.nome }}</h1>
+            <div class="client-status">
+                {% if cliente.stato == 'attivo' %}
+                    <span class="status-badge status-active">🟢 Attivo</span>
+                {% elif cliente.stato == 'prospect' %}
+                    <span class="status-badge status-prospect">🟡 Prospect</span>
+                {% elif cliente.stato == 'pausa' %}
+                    <span class="status-badge status-paused">⏸️ Pausa</span>
+                {% else %}
+                    <span class="status-badge status-archived">📦 {{ cliente.stato|title }}</span>
+                {% endif %}
+            </div>
         </div>
-        
-        <h4>⚡ Azioni Rapide</h4>
-        <p>
-            {% if cliente.stato == 'attivo' %}
-            <a href="/timer" role="button" class="outline" style="width: 100%; text-align: center;">⏱️ Avvia Timer</a>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="header-actions">
+        {% if cliente.stato == 'attivo' %}
+        <a href="/timer" class="action-button primary">
+            <span class="action-icon">⏱️</span>
+            <span>Avvia Timer</span>
+        </a>
+        {% endif %}
+        <button class="action-button secondary" onclick="alert('Modifica tramite CLI')">
+            <span class="action-icon">✏️</span>
+            <span>Modifica</span>
+        </button>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="client-layout">
+    <!-- Left Column: Information & Details -->
+    <div class="client-main">
+        <!-- Client Information Card -->
+        <div class="dashboard-section info-card">
+            <div class="section-header">
+                <h2>📋 Informazioni Cliente</h2>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">P.IVA</div>
+                    <div class="info-value">{{ cliente.piva or 'Non specificata' }}</div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">Tariffa Oraria</div>
+                    <div class="info-value price-highlight">€{{ cliente.tariffa_oraria|int }}/h</div>
+                </div>
+                
+                {% if cliente.budget_mensile %}
+                <div class="info-item">
+                    <div class="info-label">Budget Mensile</div>
+                    <div class="info-value price-highlight">€{{ cliente.budget_mensile|int }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="info-item full-width">
+                    <div class="info-label">Indirizzo</div>
+                    <div class="info-value">{{ cliente.indirizzo_completo or 'Non specificato' }}</div>
+                </div>
+            </div>
+            
+            {% if cliente.tags_list %}
+            <div class="tags-section">
+                <div class="info-label">Tags</div>
+                <div class="tags-container">
+                    {% for tag in cliente.tags_list %}
+                        <span class="tag-modern">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+            </div>
             {% endif %}
-        </p>
+            
+            {% if cliente.note %}
+            <div class="notes-section">
+                <div class="info-label">Note</div>
+                <div class="note-content">{{ cliente.note }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Todo Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>✅ Todo Aperti</h2>
+                <span class="item-count">{{ todos|length }} elementi</span>
+            </div>
+            
+            {% if todos %}
+            <div class="todo-list">
+                {% for todo in todos %}
+                <div class="todo-item {% if todo.is_overdue %}todo-overdue{% endif %}">
+                    <div class="todo-priority">
+                        <span class="priority-indicator priority-{% if todo.priorita == 1 %}high{% elif todo.priorita == -1 %}low{% else %}normal{% endif %}">{{ todo.priorita_text }}</span>
+                    </div>
+                    
+                    <div class="todo-content">
+                        <div class="todo-title">{{ todo.titolo }}</div>
+                        {% if todo.descrizione %}
+                        <div class="todo-description">{{ todo.descrizione }}</div>
+                        {% endif %}
+                        
+                        <div class="todo-meta">
+                            {% if todo.scadenza %}
+                            <span class="todo-date">
+                                📅 {{ todo.scadenza.strftime('%d/%m/%Y') }}
+                                {% if todo.is_overdue %}
+                                    <span class="overdue-badge">In ritardo</span>
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="todo-status">
+                        {% if todo.is_overdue %}
+                            <span class="status-urgent">🔴 Urgente</span>
+                        {% else %}
+                            <span class="status-open">⏳ Aperto</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">✅</div>
+                <div class="empty-title">Nessun todo aperto</div>
+                <div class="empty-subtitle">Tutti i compiti sono stati completati!</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Interventi Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>📝 Ultimi Interventi</h2>
+                <span class="item-count">{{ interventi|length }} elementi</span>
+            </div>
+            
+            {% if interventi %}
+            <div class="interventi-list">
+                {% for intervento in interventi %}
+                <div class="intervento-item">
+                    <div class="intervento-icon">
+                        {{ intervento.tipo_icon }}
+                    </div>
+                    
+                    <div class="intervento-content">
+                        <div class="intervento-title">{{ intervento.titolo }}</div>
+                        {% if intervento.descrizione %}
+                        <div class="intervento-description">{{ intervento.descrizione }}</div>
+                        {% endif %}
+                        
+                        <div class="intervento-meta">
+                            <span class="intervento-date">
+                                📅 {{ intervento.data.strftime('%d/%m/%Y') }} • {{ intervento.data.strftime('%H:%M') }}
+                            </span>
+                            {% if intervento.durata_minuti %}
+                            <span class="intervento-duration">
+                                ⏱️ {{ intervento.durata_minuti }}min
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="intervento-details">
+                        {% if intervento.costo %}
+                        <div class="intervento-cost">€{{ intervento.costo|int }}</div>
+                        {% endif %}
+                        
+                        <div class="intervento-status">
+                            {% if intervento.fatturato %}
+                                <span class="status-billed">✅ Fatturato</span>
+                            {% else %}
+                                <span class="status-pending">⏳ Da fatturare</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📝</div>
+                <div class="empty-title">Nessun intervento</div>
+                <div class="empty-subtitle">Non sono ancora stati registrati interventi per questo cliente</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Right Sidebar: Statistics & Actions -->
+    <div class="client-sidebar">
+        <!-- Statistics Cards -->
+        <div class="dashboard-section stats-section">
+            <div class="section-header">
+                <h2>📊 Statistiche</h2>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card-modern">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-info">
+                        <div class="stat-number">{{ ore_totali }}h</div>
+                        <div class="stat-label">Ore Totali</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card-modern billing">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <div class="stat-number">{{ ore_non_fatturate }}h</div>
+                        <div class="stat-label">Da Fatturare</div>
+                        <div class="stat-detail">€{{ compenso_non_fatturato }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Todo aperti -->
-<h2>✅ Todo Aperti ({{ todos|length }})</h2>
-{% if todos %}
-<div class="table-responsive">
-    <table class="table-compact">
-        <thead>
-            <tr>
-                <th>Priorità</th>
-                <th>Titolo</th>
-                <th>Scadenza</th>
-                <th>Stato</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for todo in todos %}
-        <tr {% if todo.is_overdue %}class="overdue"{% endif %}>
-            <td>
-                <span class="priority-{% if todo.priorita == 1 %}high{% elif todo.priorita == -1 %}low{% else %}normal{% endif %}">
-                    {{ todo.priorita_text }}
-                </span>
-            </td>
-            <td>
-                <strong>{{ todo.titolo }}</strong>
-                {% if todo.descrizione %}
-                    <br><small>{{ todo.descrizione }}</small>
-                {% endif %}
-            </td>
-            <td>
-                {% if todo.scadenza %}
-                    {{ todo.scadenza.strftime('%d/%m/%Y') }}
-                    {% if todo.is_overdue %}
-                        <br><small style="color: #dc3545;">In ritardo</small>
-                    {% endif %}
-                {% else %}
-                    -
-                {% endif %}
-            </td>
-            <td>
-                {% if todo.is_overdue %}
-                    🔴 Urgente
-                {% else %}
-                    ⏳ Aperto
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<p><em>Nessun todo aperto per questo cliente</em></p>
-{% endif %}
-
-<!-- Ultimi interventi -->
-<h2>📝 Ultimi Interventi ({{ interventi|length }})</h2>
-{% if interventi %}
-<div class="table-responsive">
-    <table class="table-compact">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Tipo</th>
-                <th>Titolo</th>
-                <th>Durata</th>
-                <th>Costo</th>
-                <th>Stato</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for intervento in interventi %}
-        <tr>
-            <td>
-                {{ intervento.data.strftime('%d/%m') }}<br>
-                <small>{{ intervento.data.strftime('%H:%M') }}</small>
-            </td>
-            <td>{{ intervento.tipo_icon }}</td>
-            <td>
-                <strong>{{ intervento.titolo }}</strong>
-                {% if intervento.descrizione %}
-                    <br><small>{{ intervento.descrizione }}</small>
-                {% endif %}
-            </td>
-            <td>
-                {% if intervento.durata_minuti %}
-                    {{ intervento.durata_minuti }}min
-                {% else %}
-                    -
-                {% endif %}
-            </td>
-            <td>
-                {% if intervento.costo %}
-                    €{{ intervento.costo|int }}
-                {% else %}
-                    -
-                {% endif %}
-            </td>
-            <td>
-                {% if intervento.fatturato %}
-                    ✅ Fatturato
-                {% else %}
-                    ⏳ Da fatturare
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<p><em>Nessun intervento registrato per questo cliente</em></p>
-{% endif %}
-
-<!-- Note gestione -->
-<hr>
-<details>
-    <summary><strong>📝 Gestione Cliente</strong></summary>
-    <div class="grid">
-        <div>
-            <h4>Funzioni Web</h4>
-            <ul>
-                <li>✅ Visualizzazione dettagli completi</li>
-                <li>✅ Todo e interventi collegati</li>
-                <li>✅ Statistiche ore/compensi</li>
-                <li>❌ Modifica dati (solo CLI)</li>
-            </ul>
+<!-- Management Notes -->
+<div class="management-section">
+    <details class="management-details">
+        <summary><strong>📝 Gestione Cliente</strong></summary>
+        <div class="management-content">
+            <div class="management-grid">
+                <div class="management-card">
+                    <h4>🌐 Funzioni Web</h4>
+                    <ul class="feature-list">
+                        <li class="feature-available">✅ Visualizzazione dettagli completi</li>
+                        <li class="feature-available">✅ Todo e interventi collegati</li>
+                        <li class="feature-available">✅ Statistiche ore/compensi</li>
+                        <li class="feature-unavailable">❌ Modifica dati (solo CLI)</li>
+                    </ul>
+                </div>
+                <div class="management-card">
+                    <h4>💻 Gestione via CLI</h4>
+                    <div class="cli-commands">
+                        <code class="cli-command">clienti client show "{{ cliente.nome }}"</code>
+                        <code class="cli-command">clienti client edit "{{ cliente.nome }}"</code>
+                        <code class="cli-command">clienti todo cliente "{{ cliente.nome }}"</code>
+                        <code class="cli-command">clienti log cliente "{{ cliente.nome }}"</code>
+                        <code class="cli-command">clienti time report --cliente "{{ cliente.nome }}"</code>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div>
-            <h4>Gestione via CLI</h4>
-            <ul>
-                <li><code>clienti client show "{{ cliente.nome }}"</code></li>
-                <li><code>clienti client edit "{{ cliente.nome }}"</code></li>
-                <li><code>clienti todo cliente "{{ cliente.nome }}"</code></li>
-                <li><code>clienti log cliente "{{ cliente.nome }}"</code></li>
-                <li><code>clienti time report --cliente "{{ cliente.nome }}"</code></li>
-            </ul>
-        </div>
-    </div>
-</details>
+    </details>
+</div>
 
 <style>
-.tag {
-    background-color: var(--primary-color);
+/* === CLIENT DETAIL STYLES === */
+
+/* Header Section */
+.client-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    margin-right: 0.5rem;
-    font-size: 0.75rem;
+    padding: 2rem 0;
+    margin: -1rem -1rem 2rem -1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.client-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.header-navigation {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 1rem;
+}
+
+.back-link {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.back-link:hover {
+    color: white;
+    transform: translateX(-4px);
+}
+
+.client-title {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 1.5rem;
+}
+
+.client-avatar {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.client-info h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.client-status {
+    margin-top: 0.5rem;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    display: inline-block;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+.action-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.action-button.primary {
+    background: #28a745;
+    color: white;
+}
+
+.action-button.secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.action-icon {
+    font-size: 1.2rem;
+}
+
+/* Layout */
+.client-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.client-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.client-sidebar {
+    position: sticky;
+    top: 2rem;
+}
+
+/* Information Card */
+.info-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 1px solid #e9ecef;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.info-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.info-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--color);
+}
+
+.price-highlight {
+    color: #28a745;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.tags-section {
+    padding-top: 1rem;
+    border-top: 1px solid var(--muted-border-color);
+    margin-top: 1rem;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.tag-modern {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notes-section {
+    padding-top: 1rem;
+    border-top: 1px solid var(--muted-border-color);
+    margin-top: 1rem;
+}
+
+.note-content {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    margin-top: 0.5rem;
+    font-style: italic;
+    color: var(--muted-color);
+}
+
+/* Statistics */
+.stats-section {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+}
+
+.stats-section .section-header {
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.stats-section .section-header h2 {
+    color: white;
+}
+
+.stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.stat-card-modern {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-card-modern.billing {
+    background: rgba(220, 53, 69, 0.2);
+    border-color: rgba(220, 53, 69, 0.3);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    opacity: 0.9;
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.stat-detail {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+    opacity: 0.95;
+}
+
+/* Todo List */
+.todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.todo-item {
+    background: var(--card-background-color);
+    border: 1px solid var(--muted-border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    align-items: start;
+    transition: all 0.2s ease;
+}
+
+.todo-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.todo-item.todo-overdue {
+    border-left: 4px solid #dc3545;
+    background: rgba(220, 53, 69, 0.05);
+}
+
+.todo-priority {
+    display: flex;
+    align-items: center;
+}
+
+.priority-indicator {
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    min-width: 80px;
+}
+
+.priority-high {
+    background: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.priority-normal {
+    background: rgba(255, 193, 7, 0.15);
+    color: #e0a800;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.priority-low {
+    background: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.todo-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.todo-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--color);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.todo-description {
+    color: var(--muted-color);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.todo-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--muted-color);
+}
+
+.todo-date {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.overdue-badge {
+    background: #dc3545;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.todo-status {
+    display: flex;
+    align-items: center;
+}
+
+.status-urgent {
+    color: #dc3545;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.status-open {
+    color: var(--muted-color);
+    font-size: 0.9rem;
+}
+
+/* Interventi List */
+.interventi-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.intervento-item {
+    background: var(--card-background-color);
+    border: 1px solid var(--muted-border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    align-items: start;
+    transition: all 0.2s ease;
+}
+
+.intervento-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.intervento-icon {
+    font-size: 1.5rem;
+    width: 48px;
+    height: 48px;
+    background: var(--muted-background-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.intervento-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.intervento-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--color);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.intervento-description {
+    color: var(--muted-color);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.intervento-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--muted-color);
+}
+
+.intervento-details {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
+.intervento-cost {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #28a745;
+}
+
+.intervento-status {
+    font-size: 0.85rem;
+}
+
+.status-billed {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.status-pending {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--muted-color);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.empty-subtitle {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Item Count */
+.item-count {
+    background: var(--muted-background-color);
+    color: var(--muted-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Management Section */
+.management-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--muted-border-color);
+}
+
+.management-details {
+    background: var(--muted-background-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--muted-border-color);
+}
+
+.management-details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.management-content {
+    margin-top: 1rem;
+}
+
+.management-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.management-card {
+    background: var(--card-background-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--muted-border-color);
+}
+
+.management-card h4 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-list li {
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.feature-available {
+    color: #28a745;
+}
+
+.feature-unavailable {
+    color: var(--muted-color);
+}
+
+.cli-commands {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.cli-command {
+    background: var(--muted-background-color);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    border: 1px solid var(--muted-border-color);
+    display: block;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+    .client-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .client-sidebar {
+        position: static;
+    }
+    
+    .client-title {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .client-info h1 {
+        font-size: 2rem;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .action-button {
+        width: 200px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .client-header {
+        margin: -0.5rem -0.5rem 1.5rem -0.5rem;
+        padding: 1.5rem 1rem;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .todo-item,
+    .intervento-item {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .todo-content,
+    .intervento-content {
+        order: 1;
+    }
+    
+    .todo-priority,
+    .intervento-icon {
+        order: 2;
+        justify-self: center;
+    }
+    
+    .todo-status,
+    .intervento-details {
+        order: 3;
+        justify-self: center;
+        text-align: center;
+    }
+    
+    .management-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stats-grid {
+        gap: 0.75rem;
+    }
+    
+    .stat-card-modern {
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
 }
 </style>
 
