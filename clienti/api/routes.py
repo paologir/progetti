@@ -128,6 +128,51 @@ async def cliente_detail(request: Request, cliente_id: int, db: Session = Depend
         and_(Todo.cliente_id == cliente_id, Todo.completato == False)
     ).order_by(Todo.scadenza.asc()).all()
     
+    # Pagamenti del cliente
+    pagamenti = db.query(ScadenzeFatturazione).filter(
+        ScadenzeFatturazione.cliente_id == cliente_id
+    ).order_by(desc(ScadenzeFatturazione.data_scadenza)).all()
+    
+    # Calcoli pagamenti
+    totale_da_emettere = db.query(func.sum(ScadenzeFatturazione.importo_previsto)).filter(
+        and_(
+            ScadenzeFatturazione.cliente_id == cliente_id,
+            ScadenzeFatturazione.emessa == False,
+            ScadenzeFatturazione.importo_previsto.isnot(None)
+        )
+    ).scalar() or 0
+    
+    totale_emesso_non_pagato = db.query(func.sum(ScadenzeFatturazione.importo_previsto)).filter(
+        and_(
+            ScadenzeFatturazione.cliente_id == cliente_id,
+            ScadenzeFatturazione.emessa == True,
+            ScadenzeFatturazione.pagata == False,
+            ScadenzeFatturazione.importo_previsto.isnot(None)
+        )
+    ).scalar() or 0
+    
+    # Solo fatture pagate per il totale incassato
+    totale_incassato_fatture = db.query(func.sum(ScadenzeFatturazione.importo_previsto)).filter(
+        and_(
+            ScadenzeFatturazione.cliente_id == cliente_id,
+            ScadenzeFatturazione.tipo == 'fattura',
+            ScadenzeFatturazione.emessa == True,
+            ScadenzeFatturazione.pagata == True,
+            ScadenzeFatturazione.importo_previsto.isnot(None)
+        )
+    ).scalar() or 0
+    
+    # Parcelle pagate (separate dalle fatture)
+    totale_parcelle_pagate = db.query(func.sum(ScadenzeFatturazione.importo_previsto)).filter(
+        and_(
+            ScadenzeFatturazione.cliente_id == cliente_id,
+            ScadenzeFatturazione.tipo == 'parcella',
+            ScadenzeFatturazione.emessa == True,
+            ScadenzeFatturazione.pagata == True,
+            ScadenzeFatturazione.importo_previsto.isnot(None)
+        )
+    ).scalar() or 0
+    
     # Ore totali e non fatturate
     ore_totali = db.query(func.sum(
         (func.julianday(TimeTracking.fine) - func.julianday(TimeTracking.inizio)) * 24
@@ -150,6 +195,11 @@ async def cliente_detail(request: Request, cliente_id: int, db: Session = Depend
         "cliente": cliente,
         "interventi": interventi,
         "todos": todos,
+        "pagamenti": pagamenti,
+        "totale_da_emettere": round(totale_da_emettere, 2),
+        "totale_emesso_non_pagato": round(totale_emesso_non_pagato, 2),
+        "totale_incassato_fatture": round(totale_incassato_fatture, 2),
+        "totale_parcelle_pagate": round(totale_parcelle_pagate, 2),
         "ore_totali": round(ore_totali, 1),
         "ore_non_fatturate": round(ore_non_fatturate, 1),
         "compenso_non_fatturato": round(ore_non_fatturate * cliente.tariffa_oraria, 0),

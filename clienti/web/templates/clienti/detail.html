@@ -206,6 +206,135 @@
             </div>
             {% endif %}
         </div>
+
+        <!-- Pagamenti Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>💰 Pagamenti</h2>
+                <span class="item-count">{{ pagamenti|length }} elementi</span>
+            </div>
+            
+            <!-- Riepilogo Pagamenti -->
+            <div class="pagamenti-summary">
+                <div class="summary-grid">
+                    <div class="summary-card da-emettere">
+                        <div class="summary-icon">📋</div>
+                        <div class="summary-info">
+                            <div class="summary-value">€{{ totale_da_emettere }}</div>
+                            <div class="summary-label">Da Emettere</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card emesso-non-pagato">
+                        <div class="summary-icon">⏳</div>
+                        <div class="summary-info">
+                            <div class="summary-value">€{{ totale_emesso_non_pagato }}</div>
+                            <div class="summary-label">Emesso non Pagato</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card incassato-fatture">
+                        <div class="summary-icon">💼</div>
+                        <div class="summary-info">
+                            <div class="summary-value">€{{ totale_incassato_fatture }}</div>
+                            <div class="summary-label">Fatture Incassate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card parcelle-pagate">
+                        <div class="summary-icon">📝</div>
+                        <div class="summary-info">
+                            <div class="summary-value">€{{ totale_parcelle_pagate }}</div>
+                            <div class="summary-label">Parcelle Pagate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if pagamenti %}
+            <div class="pagamenti-list">
+                {% for pagamento in pagamenti %}
+                <div class="pagamento-item {% if pagamento.is_overdue %}pagamento-overdue{% endif %} {% if pagamento.pagata %}pagamento-pagato{% elif pagamento.emessa %}pagamento-emesso{% endif %}">
+                    <div class="pagamento-icon">
+                        {{ pagamento.tipo_icon }}
+                    </div>
+                    
+                    <div class="pagamento-content">
+                        <div class="pagamento-header">
+                            <div class="pagamento-tipo">
+                                <span class="tipo-badge tipo-{{ pagamento.tipo }}">
+                                    {% if pagamento.tipo == 'fattura' %}💼 Fattura{% else %}📝 Parcella{% endif %}
+                                </span>
+                            </div>
+                            
+                            <div class="pagamento-importo">
+                                {% if pagamento.importo_previsto %}
+                                    <span class="importo">€{{ pagamento.importo_previsto|int }}</span>
+                                {% else %}
+                                    <span class="importo-variabile">DA DEFINIRE</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="pagamento-description">
+                            {{ pagamento.descrizione or pagamento.tipo|title }}
+                        </div>
+                        
+                        <div class="pagamento-meta">
+                            <div class="pagamento-dates">
+                                <span class="scadenza-date">
+                                    📅 Scadenza: {{ pagamento.data_scadenza.strftime('%d/%m/%Y') }}
+                                    {% if pagamento.is_overdue and not pagamento.emessa %}
+                                        <span class="overdue-badge">In ritardo</span>
+                                    {% endif %}
+                                </span>
+                                
+                                {% if pagamento.data_emissione %}
+                                <span class="emissione-date">
+                                    ✅ Emessa: {{ pagamento.data_emissione.strftime('%d/%m/%Y') }}
+                                    {% if pagamento.numero_documento %}
+                                        ({{ pagamento.numero_documento }})
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+                                
+                                {% if pagamento.data_pagamento %}
+                                <span class="pagamento-date">
+                                    💰 Pagata: {{ pagamento.data_pagamento.strftime('%d/%m/%Y') }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if pagamento.ricorrenza %}
+                            <div class="ricorrenza-info">
+                                <span class="ricorrenza-badge">🔄 {{ pagamento.ricorrenza|title }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="pagamento-status">
+                        {% if pagamento.pagata %}
+                            <span class="status-paid">✅ Pagato</span>
+                        {% elif pagamento.emessa %}
+                            <span class="status-issued">📋 Emesso</span>
+                        {% elif pagamento.is_overdue %}
+                            <span class="status-overdue">🔴 In ritardo</span>
+                        {% else %}
+                            <span class="status-pending">⏳ Da emettere</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">💰</div>
+                <div class="empty-title">Nessun pagamento</div>
+                <div class="empty-subtitle">Non sono ancora stati configurati pagamenti per questo cliente</div>
+            </div>
+            {% endif %}
+        </div>
     </div>
     
     <!-- Right Sidebar: Statistics & Actions -->
@@ -770,6 +899,237 @@
 .status-pending {
     color: #ffc107;
     font-weight: 600;
+}
+
+/* Pagamenti Section */
+.pagamenti-summary {
+    margin-bottom: 2rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-card {
+    background: var(--card-background-color);
+    border: 1px solid var(--muted-border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card.da-emettere {
+    border-left: 4px solid #ffc107;
+}
+
+.summary-card.emesso-non-pagato {
+    border-left: 4px solid #17a2b8;
+}
+
+.summary-card.incassato-fatture {
+    border-left: 4px solid #28a745;
+}
+
+.summary-card.parcelle-pagate {
+    border-left: 4px solid #6f42c1;
+}
+
+.summary-icon {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+
+.summary-info {
+    flex: 1;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color);
+    margin-bottom: 0.25rem;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: var(--muted-color);
+    font-weight: 500;
+}
+
+/* Pagamenti List */
+.pagamenti-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.pagamento-item {
+    background: var(--card-background-color);
+    border: 1px solid var(--muted-border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    align-items: start;
+    transition: all 0.2s ease;
+}
+
+.pagamento-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.pagamento-item.pagamento-overdue {
+    border-left: 4px solid #dc3545;
+    background: rgba(220, 53, 69, 0.05);
+}
+
+.pagamento-item.pagamento-pagato {
+    border-left: 4px solid #28a745;
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.pagamento-item.pagamento-emesso {
+    border-left: 4px solid #17a2b8;
+    background: rgba(23, 162, 184, 0.05);
+}
+
+.pagamento-icon {
+    font-size: 1.5rem;
+    width: 48px;
+    height: 48px;
+    background: var(--muted-background-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagamento-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.pagamento-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.tipo-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.tipo-fattura {
+    background: rgba(0, 123, 255, 0.15);
+    color: #007bff;
+    border: 1px solid rgba(0, 123, 255, 0.3);
+}
+
+.tipo-parcella {
+    background: rgba(111, 66, 193, 0.15);
+    color: #6f42c1;
+    border: 1px solid rgba(111, 66, 193, 0.3);
+}
+
+.pagamento-importo .importo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #28a745;
+}
+
+.pagamento-importo .importo-variabile {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffc107;
+    font-style: italic;
+}
+
+.pagamento-description {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--color);
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.pagamento-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pagamento-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--muted-color);
+}
+
+.scadenza-date, .emissione-date, .pagamento-date {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.ricorrenza-info {
+    margin-top: 0.5rem;
+}
+
+.ricorrenza-badge {
+    background: var(--muted-background-color);
+    color: var(--muted-color);
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.pagamento-status {
+    display: flex;
+    align-items: center;
+    text-align: right;
+}
+
+.status-paid {
+    color: #28a745;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.status-issued {
+    color: #17a2b8;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.status-overdue {
+    color: #dc3545;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.status-pending {
+    color: #ffc107;
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 /* Empty States */
