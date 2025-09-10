@@ -65,8 +65,14 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         )
     ).scalar() or 0
     
-    # Fatturato mese (approssimato)
-    fatturato_mese = ore_mese * 50  # Tariffa media
+    # Fatturato mese (basato su fatture emesse nel mese)
+    fatturato_mese = db.query(func.sum(ScadenzeFatturazione.importo_previsto)).filter(
+        and_(
+            ScadenzeFatturazione.emessa == True,
+            ScadenzeFatturazione.data_emissione >= mese_start,
+            ScadenzeFatturazione.tipo == 'fattura'
+        )
+    ).scalar() or 0
     
     context = {
         "request": request,
@@ -233,7 +239,7 @@ async def cliente_edit(
     
     db.commit()
     
-    return RedirectResponse(url="/clienti", status_code=303)
+    return RedirectResponse(url=f"/clienti/{cliente_id}", status_code=303)
 
 
 @app.post("/clienti/{cliente_id}/delete")
@@ -253,7 +259,7 @@ async def cliente_delete(cliente_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/timer", response_class=HTMLResponse)
-async def timer_page(request: Request, db: Session = Depends(get_db)):
+async def timer_page(request: Request, success: str = None, periodo: str = "7d", db: Session = Depends(get_db)):
     """Pagina timer web"""
     
     # Timer attivo
@@ -262,20 +268,32 @@ async def timer_page(request: Request, db: Session = Depends(get_db)):
     # Clienti attivi per dropdown
     clienti = db.query(Cliente).filter(Cliente.stato == 'attivo').order_by(Cliente.nome).all()
     
-    # Sessioni recenti (ultimi 7 giorni)
-    week_ago = datetime.now() - timedelta(days=7)
+    # Sessioni in base al periodo selezionato
+    today = datetime.now()
+    query_filter = [TimeTracking.fine != None]
+    
+    if periodo == "7d":
+        start_date = today - timedelta(days=7)
+        query_filter.append(TimeTracking.inizio >= start_date)
+    elif periodo == "30d":
+        start_date = today - timedelta(days=30)
+        query_filter.append(TimeTracking.inizio >= start_date)
+    elif periodo == "mese":
+        start_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        query_filter.append(TimeTracking.inizio >= start_date)
+    # "all" non necessita di filtri di data
+    
     sessioni_recenti = db.query(TimeTracking).filter(
-        and_(
-            TimeTracking.inizio >= week_ago,
-            TimeTracking.fine != None
-        )
-    ).join(Cliente).order_by(desc(TimeTracking.inizio)).limit(20).all()
+        and_(*query_filter)
+    ).join(Cliente).order_by(desc(TimeTracking.inizio)).limit(100).all()
     
     context = {
         "request": request,
         "timer_attivo": timer_attivo,
         "clienti": clienti,
         "sessioni_recenti": sessioni_recenti,
+        "success_message": success,
+        "periodo_selezionato": periodo,
     }
     
     return templates.TemplateResponse("timer.html", context)
@@ -394,6 +412,99 @@ async def timer_session_delete(session_id: int, db: Session = Depends(get_db)):
     db.commit()
     
     return RedirectResponse(url="/timer", status_code=303)
+
+
+@app.post("/timer/manual")
+async def timer_manual(
+    cliente_id: int = Form(...),
+    durata_minuti: int = Form(...),
+    descrizione: str = Form("Lavoro manuale"),
+    data_sessione: str = Form(""),  # Format: YYYY-MM-DD
+    ora_inizio: str = Form("09:00"),  # Format: HH:MM
+    tariffa_personalizzata: str = Form(""),  # Optional custom rate
+    note: str = Form(""),
+    fatturato: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    """Aggiungi sessione di timer manuale"""
+    try:
+        # Find cliente
+        cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        # Parse data (default: today)
+        if data_sessione:
+            try:
+                session_date = datetime.strptime(data_sessione, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Formato data non valido")
+        else:
+            session_date = date.today()
+        
+        # Parse ora inizio
+        try:
+            start_hour, start_minute = map(int, ora_inizio.split(':'))
+            if not (0 <= start_hour <= 23 and 0 <= start_minute <= 59):
+                raise ValueError
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato orario non valido")
+        
+        # Validate minuti
+        if durata_minuti <= 0:
+            raise HTTPException(status_code=400, detail="La durata deve essere maggiore di zero.")
+        
+        # Calculate start and end times
+        start_datetime = datetime.combine(
+            session_date, 
+            datetime.min.time().replace(hour=start_hour, minute=start_minute)
+        )
+        
+        # Calculate end time from minutes
+        end_datetime = start_datetime + timedelta(minutes=durata_minuti)
+        
+        # Determine tariffa
+        if tariffa_personalizzata:
+            try:
+                session_rate = float(tariffa_personalizzata)
+                if session_rate <= 0:
+                    raise ValueError
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Tariffa non valida")
+        else:
+            session_rate = cliente.tariffa_oraria or 50.0
+        
+        # Check for overlapping sessions (just warn)
+        overlapping = db.query(TimeTracking).filter(
+            and_(
+                TimeTracking.cliente_id == cliente.id,
+                TimeTracking.inizio < end_datetime,
+                TimeTracking.fine > start_datetime
+            )
+        ).first()
+        
+        # Create session
+        session = TimeTracking(
+            cliente_id=cliente.id,
+            inizio=start_datetime,
+            fine=end_datetime,
+            descrizione=descrizione,
+            tariffa_oraria=session_rate,
+            fatturato=fatturato,
+            note=note
+        )
+        
+        db.add(session)
+        db.commit()
+        
+        # Return success response
+        return RedirectResponse(url="/timer?success=manual", status_code=303)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Errore durante il salvataggio: {str(e)}")
 
 
 @app.get("/todos", response_class=HTMLResponse)
@@ -516,51 +627,77 @@ async def todo_delete(todo_id: int, db: Session = Depends(get_db)):
 
 # PAGAMENTI ROUTES
 
+from dateutil.relativedelta import relativedelta
+
 @app.get("/pagamenti", response_class=HTMLResponse)
-async def pagamenti_list(request: Request, db: Session = Depends(get_db)):
-    """Lista pagamenti con filtri"""
+async def pagamenti_list(request: Request, periodo: str = "all", db: Session = Depends(get_db)):
+    """Lista pagamenti con filtri temporali e KPI"""
     
     today = date.today()
     
-    # Tutti i pagamenti ordinati per scadenza
-    pagamenti = db.query(ScadenzeFatturazione).join(Cliente).order_by(
-        ScadenzeFatturazione.data_scadenza.desc()
-    ).all()
+    # Definizione del periodo di tempo
+    start_date, end_date = None, None
+    if periodo == "this_month":
+        start_date = today.replace(day=1)
+        end_date = (start_date + relativedelta(months=1)) - timedelta(days=1)
+    elif periodo == "last_month":
+        end_date = today.replace(day=1) - timedelta(days=1)
+        start_date = end_date.replace(day=1)
+    elif periodo == "this_year":
+        start_date = today.replace(month=1, day=1)
+        end_date = today.replace(month=12, day=31)
+
+    # Query base per i pagamenti
+    query = db.query(ScadenzeFatturazione)
+    if start_date and end_date:
+        query = query.filter(ScadenzeFatturazione.data_scadenza.between(start_date, end_date))
+
+    pagamenti = query.join(Cliente).order_by(ScadenzeFatturazione.data_scadenza.desc()).all()
     
-    # Statistiche
-    scadute = db.query(ScadenzeFatturazione).filter(
+    # Calcolo KPI per il periodo selezionato
+
+    # Per le fatture incassate, il filtro si basa sulla data di pagamento
+    incassato_query = db.query(func.sum(ScadenzeFatturazione.importo_previsto)).filter(
         and_(
-            ScadenzeFatturazione.data_scadenza < today,
-            ScadenzeFatturazione.emessa == False
+            ScadenzeFatturazione.importo_previsto.isnot(None),
+            ScadenzeFatturazione.tipo == 'fattura',
+            ScadenzeFatturazione.emessa == True,
+            ScadenzeFatturazione.pagata == True
         )
-    ).count()
-    
-    prossime = db.query(ScadenzeFatturazione).filter(
+    )
+    if start_date and end_date:
+        incassato_query = incassato_query.filter(ScadenzeFatturazione.data_pagamento.between(start_date, end_date))
+
+    totale_incassato_fatture = incassato_query.scalar() or 0
+
+    # Per gli altri KPI, il filtro si basa sulla data di scadenza
+    kpi_scadenza_query = db.query(func.sum(ScadenzeFatturazione.importo_previsto)).filter(ScadenzeFatturazione.importo_previsto.isnot(None))
+    if start_date and end_date:
+        kpi_scadenza_query = kpi_scadenza_query.filter(ScadenzeFatturazione.data_scadenza.between(start_date, end_date))
+
+    totale_emesso_non_pagato = kpi_scadenza_query.filter(
         and_(
-            ScadenzeFatturazione.data_scadenza >= today,
-            ScadenzeFatturazione.data_scadenza <= today + timedelta(days=7),
-            ScadenzeFatturazione.emessa == False
+            ScadenzeFatturazione.emessa == True,
+            ScadenzeFatturazione.pagata == False
         )
-    ).count()
+    ).scalar() or 0
     
-    emesse = db.query(ScadenzeFatturazione).filter(
-        ScadenzeFatturazione.emessa == True
-    ).count()
+    totale_da_emettere = kpi_scadenza_query.filter(
+        ScadenzeFatturazione.emessa == False
+    ).scalar() or 0
     
     # Lista clienti per form
     clienti = db.query(Cliente).filter(Cliente.stato == 'attivo').order_by(Cliente.nome).all()
-    
-    # La proprietà is_overdue è già disponibile nel model ScadenzeFatturazione
     
     context = {
         "request": request,
         "pagamenti": pagamenti,
         "clienti": clienti,
-        "scadute_count": scadute,
-        "prossime_count": prossime,
-        "emesse_count": emesse,
-        "totali_count": len(pagamenti),
         "today": today,
+        "periodo_selezionato": periodo,
+        "totale_incassato_fatture": round(totale_incassato_fatture, 2),
+        "totale_emesso_non_pagato": round(totale_emesso_non_pagato, 2),
+        "totale_da_emettere": round(totale_da_emettere, 2),
     }
     
     return templates.TemplateResponse("pagamenti.html", context)
@@ -601,7 +738,7 @@ async def pagamento_add(
 
 
 @app.post("/pagamenti/{pagamento_id}/emessa")
-async def pagamento_emessa(pagamento_id: int, db: Session = Depends(get_db)):
+async def pagamento_emessa(request: Request, pagamento_id: int, db: Session = Depends(get_db)):
     """Marca pagamento come emesso"""
     
     pagamento = db.query(ScadenzeFatturazione).filter(ScadenzeFatturazione.id == pagamento_id).first()
@@ -612,23 +749,43 @@ async def pagamento_emessa(pagamento_id: int, db: Session = Depends(get_db)):
     pagamento.data_emissione = date.today()
     pagamento.numero_documento = f"DOC-{pagamento_id}-{date.today().strftime('%Y%m%d')}"
     
+    db.flush()
     db.commit()
+    db.refresh(pagamento)
+    
+    # Preserve query params on redirect
+    referer = request.headers.get("referer")
+    if referer:
+        return RedirectResponse(url=referer, status_code=303)
     
     return RedirectResponse(url="/pagamenti", status_code=303)
 
 
 @app.post("/pagamenti/{pagamento_id}/pagata")  
-async def pagamento_pagata(pagamento_id: int, db: Session = Depends(get_db)):
+async def pagamento_pagata(request: Request, pagamento_id: int, db: Session = Depends(get_db)):
     """Marca pagamento come pagato"""
     
     pagamento = db.query(ScadenzeFatturazione).filter(ScadenzeFatturazione.id == pagamento_id).first()
     if not pagamento:
         raise HTTPException(status_code=404, detail="Pagamento non trovato")
-    
-    pagamento.pagato = True
+
+    if not pagamento.emessa:
+        raise HTTPException(status_code=400, detail="Impossibile segnare come pagata una fattura non emessa.")
+
+    if pagamento.pagata:
+        raise HTTPException(status_code=400, detail="Fattura già segnata come pagata.")
+
+    pagamento.pagata = True
     pagamento.data_pagamento = date.today()
     
+    db.flush()
     db.commit()
+    db.refresh(pagamento)
+    
+    # Preserve query params on redirect
+    referer = request.headers.get("referer")
+    if referer:
+        return RedirectResponse(url=referer, status_code=303)
     
     return RedirectResponse(url="/pagamenti", status_code=303)
 

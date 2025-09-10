@@ -5,28 +5,33 @@
 {% block content %}
 <h1>💰 Gestione Pagamenti</h1>
 
-<!-- Riassunto pagamenti -->
-<div class="dashboard-grid">
-    <div class="stat-card">
-        <span class="stat-number" style="color: #dc3545;">{{ scadute_count }}</span>
-        <div class="stat-label">🔴 Scadute</div>
-    </div>
-    
-    <div class="stat-card">
-        <span class="stat-number" style="color: #ffc107;">{{ prossime_count }}</span>
-        <div class="stat-label">📅 Prossime (7gg)</div>
-    </div>
-    
-    <div class="stat-card">
-        <span class="stat-number" style="color: #28a745;">{{ emesse_count }}</span>
-        <div class="stat-label">✅ Emesse</div>
-    </div>
-    
-    <div class="stat-card">
-        <span class="stat-number">{{ totali_count }}</span>
-        <div class="stat-label">📋 Totali</div>
+<!-- Riepiloghi KPI del periodo -->
+<div class="kpi-section" style="margin-bottom: 2rem;">
+    <div class="grid">
+        <div class="kpi-card kpi-warning">
+            <div class="kpi-icon">📄</div>
+            <div class="kpi-content">
+                <div class="kpi-number">€{{ "%.2f"|format(totale_emesso_non_pagato) }}</div>
+                <div class="kpi-label">Emesse e non Pagate</div>
+            </div>
+        </div>
+        <div class="kpi-card kpi-success">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-content">
+                <div class="kpi-number">€{{ "%.2f"|format(totale_incassato_fatture) }}</div>
+                <div class="kpi-label">Fatture Pagate</div>
+            </div>
+        </div>
+        <div class="kpi-card kpi-primary">
+            <div class="kpi-icon">⏳</div>
+            <div class="kpi-content">
+                <div class="kpi-number">€{{ "%.2f"|format(totale_da_emettere) }}</div>
+                <div class="kpi-label">Ancora da Emettere</div>
+            </div>
+        </div>
     </div>
 </div>
+
 
 <!-- Nuovo pagamento -->
 <details>
@@ -97,11 +102,20 @@
 </details>
 
 <!-- Filtri -->
-<details>
-    <summary><strong>🔍 Filtri Avanzati</strong></summary>
-    <div class="grid" style="margin-top: 1rem;">
+<div class="filter-bar" style="margin-top: 1.5rem; margin-bottom: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px;">
+    <form method="get" action="/pagamenti" style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
         <div>
-            <label for="filter-cliente">Cliente</label>
+            <label for="periodo" style="margin-bottom: 0.25rem; font-weight: 500;">Filtra Periodo:</label>
+            <select name="periodo" id="periodo" onchange="this.form.submit()">
+                <option value="all" {% if periodo_selezionato == 'all' %}selected{% endif %}>Sempre</option>
+                <option value="this_month" {% if periodo_selezionato == 'this_month' %}selected{% endif %}>Questo Mese</option>
+                <option value="last_month" {% if periodo_selezionato == 'last_month' %}selected{% endif %}>Mese Scorso</option>
+                <option value="this_year" {% if periodo_selezionato == 'this_year' %}selected{% endif %}>Quest'Anno</option>
+            </select>
+        </div>
+        <div style="border-left: 1px solid #dee2e6; height: 40px;" class="filter-divider"></div>
+        <div>
+            <label for="filter-cliente" style="margin-bottom: 0.25rem; font-weight: 500;">Filtra Cliente:</label>
             <select id="filter-cliente" onchange="filterPagamenti()">
                 <option value="">Tutti i clienti</option>
                 {% for cliente in clienti %}
@@ -109,9 +123,8 @@
                 {% endfor %}
             </select>
         </div>
-        
         <div>
-            <label for="filter-stato">Stato</label>
+            <label for="filter-stato" style="margin-bottom: 0.25rem; font-weight: 500;">Filtra Stato:</label>
             <select id="filter-stato" onchange="filterPagamenti()">
                 <option value="">Tutti gli stati</option>
                 <option value="pending">Da emettere</option>
@@ -120,23 +133,14 @@
                 <option value="overdue">Scaduta</option>
             </select>
         </div>
-        
-        <div>
-            <label for="filter-tipo">Tipo</label>
-            <select id="filter-tipo" onchange="filterPagamenti()">
-                <option value="">Tutti i tipi</option>
-                <option value="fattura">Fattura</option>
-                <option value="parcella">Parcella</option>
-            </select>
-        </div>
-    </div>
-</details>
+    </form>
+</div>
 
 <!-- Lista pagamenti -->
 <h2>📋 Pagamenti ({{ pagamenti|length }})</h2>
 
 {% if pagamenti %}
-<div class="table-responsive">
+<figure>
     <table class="table-compact" id="pagamenti-table">
         <thead>
             <tr>
@@ -146,13 +150,14 @@
                 <th>Scadenza</th>
                 <th>Importo</th>
                 <th>Stato</th>
+                <th>Pagata</th>
                 <th>Ricorrenza</th>
                 <th>Azioni</th>
             </tr>
         </thead>
         <tbody>
         {% for pagamento in pagamenti %}
-        <tr {% if pagamento.is_overdue %}class="overdue"{% elif (pagamento.data_scadenza - today).days <= 7 and (pagamento.data_scadenza - today).days >= 0 and not pagamento.emessa %}class="due-soon"{% endif %} data-cliente="{{ pagamento.cliente.nome }}" data-stato="{% if pagamento.pagato %}pagata{% elif pagamento.emessa %}emessa{% elif pagamento.is_overdue %}overdue{% else %}pending{% endif %}" data-tipo="{{ pagamento.tipo }}">
+        <tr {% if pagamento.is_overdue %}class="overdue"{% elif (pagamento.data_scadenza - today).days <= 7 and (pagamento.data_scadenza - today).days >= 0 and not pagamento.emessa %}class="due-soon"{% endif %} data-cliente="{{ pagamento.cliente.nome }}" data-stato="{% if pagamento.pagata %}pagata{% elif pagamento.emessa %}emessa{% elif pagamento.is_overdue %}overdue{% else %}pending{% endif %}" data-tipo="{{ pagamento.tipo }}">
             <td>{{ pagamento.id }}</td>
             <td>
                 <a href="/clienti/{{ pagamento.cliente.id }}"><strong>{{ pagamento.cliente.nome }}</strong></a>
@@ -185,7 +190,7 @@
                 {% endif %}
             </td>
             <td>
-                {% if pagamento.pagato %}
+                {% if pagamento.pagata %}
                     <span style="color: #28a745;">✅ Pagata</span>
                     {% if pagamento.data_pagamento %}
                         <br><small>{{ pagamento.data_pagamento.strftime('%d/%m/%Y') }}</small>
@@ -200,6 +205,9 @@
                 {% else %}
                     <span style="color: #ffc107;">⏳ Da emettere</span>
                 {% endif %}
+            </td>
+            <td>
+                <input type="checkbox" {% if pagamento.pagata %}checked{% endif %} disabled>
             </td>
             <td>
                 {% if pagamento.ricorrenza %}
@@ -219,7 +227,7 @@
                             📄 Emessa
                         </button>
                     </form>
-                    {% elif pagamento.emessa and not pagamento.pagato %}
+                    {% elif pagamento.emessa and not pagamento.pagata %}
                     <form method="post" action="/pagamenti/{{ pagamento.id }}/pagata" style="display: inline;">
                         <button type="submit" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
                             💰 Pagata  
@@ -250,7 +258,7 @@
         {% endfor %}
         </tbody>
     </table>
-</div>
+</figure>
 
 {% else %}
 <div class="alert-info">
@@ -451,20 +459,17 @@
     function filterPagamenti() {
         const clienteFilter = document.getElementById('filter-cliente').value.toLowerCase();
         const statoFilter = document.getElementById('filter-stato').value;
-        const tipoFilter = document.getElementById('filter-tipo').value;
         
         const rows = document.querySelectorAll('#pagamenti-table tbody tr');
         
         rows.forEach(row => {
             const cliente = row.dataset.cliente.toLowerCase();
             const stato = row.dataset.stato;
-            const tipo = row.dataset.tipo;
             
             const matchCliente = !clienteFilter || cliente.includes(clienteFilter);
             const matchStato = !statoFilter || stato === statoFilter;
-            const matchTipo = !tipoFilter || tipo === tipoFilter;
             
-            if (matchCliente && matchStato && matchTipo) {
+            if (matchCliente && matchStato) {
                 row.style.display = '';
             } else {
                 row.style.display = 'none';
@@ -581,13 +586,6 @@
         }
         
         /* === TABLE ENHANCED STYLING === */
-        .table-responsive {
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin-bottom: 2rem;
-            background: white;
-        }
         
         .table-compact {
             margin: 0;
